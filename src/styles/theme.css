@@ -1,16 +1,16 @@
 @theme {
     /* CLIENT CUSTOM COLORS */
-    --color-client-bg: #f8fafc;
-    --color-client-card: #ffffff;
+    --color-client-bg: #FFFFFF;
+    --color-client-card: #f8fafc;
     --color-client-input: #f1f5f9;
-    --color-client-accent: #00bfb3;
-    --color-client-accent-hover: #00a89d;
-    --color-client-accent-active: #00948a;
-    --color-client-muted: #64748b;
-    --color-client-text: #334155;
-    --color-client-light: #0f172a;
-    --color-client-dark: #0f172a;
-    --color-client-inner-bg: #f8fafc;
+    --color-client-accent: #00A3A3;
+    --color-client-accent-hover: #008282;
+    --color-client-accent-active: #008282;
+    --color-client-muted: #666666;
+    --color-client-text: #0A0A0A;
+    --color-client-light: #0A0A0A;
+    --color-client-dark: #0A0A0A;
+    --color-client-inner-bg: #e6f6f6;
     --color-client-border: #e2e8f0;
 
     /* FONT FAMILY */

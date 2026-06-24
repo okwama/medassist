@@ -145,3 +145,99 @@ export async function getPaymentStats() {
     revenue: Number(r.revenue ?? 0),
   }
 }
+
+// ---------------------------------------------------------------------------
+// Admin users table – auto-init
+// ---------------------------------------------------------------------------
+export async function initAdminUsers() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS admin_users (
+      id         SERIAL PRIMARY KEY,
+      username   VARCHAR(50)  NOT NULL UNIQUE,
+      password   VARCHAR(255) NOT NULL,
+      role       VARCHAR(20)  NOT NULL DEFAULT 'viewer'
+                   CHECK (role IN ('superadmin', 'admin', 'viewer')),
+      created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      last_login TIMESTAMPTZ  NULL
+    )
+  `
+}
+
+export async function getAllAdminUsers() {
+  const rows = await sql`
+    SELECT id, username, role, created_at, last_login
+    FROM admin_users
+    ORDER BY created_at DESC
+  `
+  return rows
+}
+
+export async function createAdminUser(username: string, password: string, role: string) {
+  await sql`
+    INSERT INTO admin_users (username, password, role)
+    VALUES (${username}, ${password}, ${role})
+    ON CONFLICT (username) DO NOTHING
+  `
+}
+
+export async function updateAdminUserRole(id: number, role: string) {
+  await sql`UPDATE admin_users SET role = ${role} WHERE id = ${id}`
+}
+
+export async function deleteAdminUser(id: number) {
+  await sql`DELETE FROM admin_users WHERE id = ${id}`
+}
+
+// ---------------------------------------------------------------------------
+// Analytics queries
+// ---------------------------------------------------------------------------
+export async function getEnrollmentsByDay(days = 30) {
+  const rows = await sql`
+    SELECT
+      DATE(created_at) AS day,
+      COUNT(*)         AS total,
+      COUNT(*) FILTER (WHERE status = 'success') AS confirmed,
+      COALESCE(SUM(amount) FILTER (WHERE status = 'success'), 0) AS revenue
+    FROM payments
+    WHERE created_at >= NOW() - INTERVAL '30 days'
+    GROUP BY day
+    ORDER BY day ASC
+  `
+  return rows
+}
+
+export async function getEnrollmentsByCourse() {
+  const rows = await sql`
+    SELECT course,
+      COUNT(*) AS total,
+      COUNT(*) FILTER (WHERE status = 'success') AS confirmed
+    FROM payments
+    GROUP BY course
+    ORDER BY total DESC
+  `
+  return rows
+}
+
+export async function getEnrollmentsByCounty() {
+  const rows = await sql`
+    SELECT county, COUNT(*) AS total
+    FROM payments
+    WHERE status = 'success'
+    GROUP BY county
+    ORDER BY total DESC
+    LIMIT 10
+  `
+  return rows
+}
+
+export async function getEnrollmentsByReferral() {
+  const rows = await sql`
+    SELECT COALESCE(NULLIF(referral, ''), 'Direct') AS referral,
+      COUNT(*) AS total
+    FROM payments
+    GROUP BY referral
+    ORDER BY total DESC
+    LIMIT 8
+  `
+  return rows
+}

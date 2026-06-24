@@ -1,19 +1,22 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  LogOut01, 
-  SearchMd, 
-  Users01, 
-  Coins02, 
-  RefreshCw01, 
-  CheckCircle, 
-  XCircle 
+import { useEffect, useState, useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import {
+  Users01,
+  RefreshCw01,
+  LogOut01,
+  SearchMd,
+  AlertCircle,
+  Printer,
+  X,
+  BarChartSquare02,
+  Shield01,
 } from '@untitledui/icons'
 import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
 import { Badge } from '@/components/base/badges/badges'
+import { NavItemBase } from '@/components/application/app-navigation/base-components/nav-item'
 
 interface Payment {
   id: number
@@ -40,27 +43,105 @@ interface Stats {
   revenue: number
 }
 
+type StatusFilter = 'all' | 'success' | 'pending' | 'failed'
+
+const STATUS_TABS = [
+  { key: 'all' as StatusFilter,     label: 'All' },
+  { key: 'success' as StatusFilter, label: 'Confirmed' },
+  { key: 'pending' as StatusFilter, label: 'Pending' },
+  { key: 'failed' as StatusFilter,  label: 'Failed' },
+]
+
+/* ─── Small reusable pieces ──────────────────────────────────────── */
+
+function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
+  return (
+    <div className="bg-bg-primary border border-border-secondary rounded-xl p-5 flex flex-col gap-2 shadow-xs">
+      <span className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">{label}</span>
+      <span className={`text-2xl font-bold ${accent ? 'text-[#00A3A3]' : 'text-text-primary'}`}>{value}</span>
+    </div>
+  )
+}
+
+function StatusBadge({ status }: { status: Payment['status'] }) {
+  if (status === 'success') return <Badge color="success" type="pill-color" size="sm">Confirmed</Badge>
+  if (status === 'pending') return <Badge color="warning" type="pill-color" size="sm">Pending</Badge>
+  return <Badge color="error" type="pill-color" size="sm">Failed</Badge>
+}
+
+/* ─── Skeleton loader rows ───────────────────────────────────────── */
+function SkeletonRows() {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <tr key={i} className="border-b border-border-secondary animate-pulse">
+          <td className="px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="size-8 rounded-full bg-bg-tertiary shrink-0" />
+              <div className="space-y-1.5">
+                <div className="h-3 w-28 bg-bg-tertiary rounded" />
+                <div className="h-2.5 w-20 bg-bg-tertiary rounded" />
+              </div>
+            </div>
+          </td>
+          {[80, 64, 72, 48, 56, 40, 32].map((w, j) => (
+            <td key={j} className="px-5 py-4">
+              <div className={`h-3 w-${w === 32 ? '8' : w === 40 ? '10' : w === 48 ? '12' : w === 56 ? '14' : w === 64 ? '16' : w === 72 ? '18' : '20'} bg-bg-tertiary rounded`} />
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  )
+}
+
+/* ─── Empty state ────────────────────────────────────────────────── */
+function EmptyState({ filtered }: { filtered: boolean }) {
+  return (
+    <tr>
+      <td colSpan={8}>
+        <div className="p-14 flex flex-col items-center justify-center gap-3 text-center">
+          <div className="size-12 rounded-xl bg-utility-brand-50 flex items-center justify-center">
+            <Users01 className="size-6 text-[#00A3A3]" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-text-primary">
+              {filtered ? 'No matching records' : 'No enrollments yet'}
+            </p>
+            <p className="text-xs text-text-tertiary mt-1">
+              {filtered
+                ? 'Try adjusting your search or filter.'
+                : 'Student enrollment data will appear here once payments come in.'}
+            </p>
+          </div>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
+/* ─── Main component ─────────────────────────────────────────────── */
 export default function AdminDashboard() {
-  const router = useRouter()
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [stats, setStats] = useState<Stats>({ total: 0, paid: 0, pending: 0, failed: 0, revenue: 0 })
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'pending' | 'failed'>('all')
+  const router   = useRouter()
+  const pathname = usePathname()
+
+  const [payments, setPayments]             = useState<Payment[]>([])
+  const [stats, setStats]                   = useState<Stats>({ total: 0, paid: 0, pending: 0, failed: 0, revenue: 0 })
+  const [search, setSearch]                 = useState('')
+  const [statusFilter, setStatusFilter]     = useState<StatusFilter>('all')
   const [selectedReceipt, setSelectedReceipt] = useState<Payment | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
+  const [isLoading, setIsLoading]           = useState(true)
+  const [error, setError]                   = useState('')
+  const [currentPage, setCurrentPage]       = useState(1)
   const itemsPerPage = 10
 
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     setError('')
+    setIsLoading(true)
     try {
       const res = await fetch('/api/admin/payments')
       if (!res.ok) {
-        if (res.status === 401) {
-          router.push('/admin')
-          return
-        }
+        if (res.status === 401) { router.push('/admin'); return }
         throw new Error('Failed to load payments')
       }
       const data = await res.json()
@@ -71,37 +152,30 @@ export default function AdminDashboard() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [router])
 
-  useEffect(() => {
-    fetchPayments()
-  }, [])
-
-  // Reset page when search term or status filter changes
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [search, statusFilter])
+  useEffect(() => { fetchPayments() }, [fetchPayments])
+  useEffect(() => { setCurrentPage(1) }, [search, statusFilter])
 
   const handleLogout = async () => {
     try {
       await fetch('/api/admin/logout', { method: 'POST' })
       router.push('/admin')
       router.refresh()
-    } catch (err) {
-      console.error('Logout failed:', err)
-    }
+    } catch (err) { console.error('Logout failed:', err) }
   }
 
+  const countByStatus = (s: Payment['status']) => payments.filter(p => p.status === s).length
+
   const filteredPayments = payments.filter(p => {
-    const matchesSearch = 
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.email.toLowerCase().includes(search.toLowerCase()) ||
-      p.phone.includes(search) ||
-      p.reference.toLowerCase().includes(search.toLowerCase()) ||
-      (p.mpesa_receipt && p.mpesa_receipt.toLowerCase().includes(search.toLowerCase()))
-
+    const q = search.toLowerCase()
+    const matchesSearch =
+      p.name.toLowerCase().includes(q) ||
+      p.email.toLowerCase().includes(q) ||
+      p.phone.includes(q) ||
+      p.reference.toLowerCase().includes(q) ||
+      (p.mpesa_receipt && p.mpesa_receipt.toLowerCase().includes(q))
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter
-
     return matchesSearch && matchesStatus
   })
 
@@ -111,359 +185,299 @@ export default function AdminDashboard() {
     currentPage * itemsPerPage
   )
 
+  const navItems = [
+    { label: 'Student Enrollments', href: '/admin/dashboard', icon: Users01 },
+    { label: 'Analytics & Reports',  href: '/admin/analytics',  icon: BarChartSquare02 },
+    { label: 'Admin Users',          href: '/admin/users',      icon: Shield01 },
+  ]
+
   return (
-    <div className="min-h-screen bg-client-bg text-client-text flex font-sans">
-      {/* Left Sidebar */}
-      <aside className="w-56 bg-client-card border-r border-client-border flex flex-col justify-between p-4 flex-shrink-0 select-none hidden md:flex">
+    <div className="min-h-screen bg-bg-secondary text-text-primary flex font-sans">
+
+      {/* ── Sidebar ─────────────────────────────────────────────── */}
+      <aside className="hidden md:flex w-64 bg-bg-primary border-r border-border-secondary flex-col justify-between py-5 px-4 flex-shrink-0">
         <div className="space-y-6">
           {/* Brand */}
-          <div className="flex items-center gap-2 px-2 py-1">
-            <div className="size-6 rounded-lg bg-client-accent flex items-center justify-center text-client-dark font-extrabold text-xs">
-              MA
-            </div>
-            <span className="font-bold text-white text-sm">MedAssist</span>
-          </div>
-
-          {/* Nav Link Items */}
-          <nav className="space-y-1.5">
-            <div className="text-[10px] font-bold text-client-muted px-2 py-1 tracking-wider uppercase">Menu</div>
-            <a href="#" onClick={(e) => e.preventDefault()} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-xs text-client-accent font-semibold bg-client-inner-bg/40">
-              👥 Student Enrollments
-            </a>
-          </nav>
-        </div>
-      </aside>
-
-      {/* Main Container */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header bar */}
-        <header className="bg-client-card px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-client-accent flex items-center justify-center text-client-dark font-extrabold text-sm md:hidden">
-              MA
+          <div className="flex items-center gap-2.5 px-2">
+            <div className="size-8 rounded-lg bg-utility-brand-50 flex items-center justify-center">
+              <span className="text-[#00A3A3] font-black text-sm">M</span>
             </div>
             <div>
-              <h1 className="text-sm font-bold text-white">MedAssist Academy Admin</h1>
-              <p className="text-[10px] text-client-muted">Real-time payment logs</p>
+              <p className="text-sm font-bold text-text-primary leading-none">MedAssist</p>
+              <p className="text-[10px] text-text-tertiary">Academy Admin</p>
             </div>
           </div>
-          <div className="flex items-center gap-2.5">
-            <button 
-              onClick={() => {
-                setIsLoading(true)
-                fetchPayments()
-              }}
-              disabled={isLoading}
-              className="bg-client-inner-bg hover:bg-[#1d3d39] text-white text-xs font-bold py-2 px-3.5 rounded-lg transition disabled:opacity-50 flex items-center gap-1.5"
-            >
+
+          {/* Nav */}
+          <nav className="space-y-0.5">
+            <p className="text-[10px] font-bold text-text-tertiary uppercase tracking-widest px-2 pb-1">Menu</p>
+            {navItems.map((item) => (
+              <NavItemBase key={item.href} href={item.href} type="link" icon={item.icon} current={pathname === item.href}>
+                {item.label}
+              </NavItemBase>
+            ))}
+          </nav>
+        </div>
+
+        {/* Footer */}
+        <NavItemBase type="link" href="#" icon={LogOut01} onClick={(e) => { e.preventDefault(); handleLogout() }}>
+          Sign out
+        </NavItemBase>
+      </aside>
+
+      {/* ── Main ────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0">
+
+        {/* Header */}
+        <header className="bg-bg-primary border-b border-border-secondary px-6 py-4 flex items-center justify-between">
+          <div className="md:hidden flex items-center gap-2">
+            <div className="size-7 rounded-lg bg-utility-brand-50 flex items-center justify-center">
+              <span className="text-[#00A3A3] font-black text-xs">M</span>
+            </div>
+            <span className="font-bold text-text-primary text-sm">MedAssist</span>
+          </div>
+          <div className="hidden md:block">
+            <h1 className="text-sm font-bold text-text-primary">Student Enrollments</h1>
+            <p className="text-xs text-text-tertiary">Real-time payment & enrollment logs</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button color="secondary" size="sm" iconLeading={RefreshCw01} disabled={isLoading} onClick={() => fetchPayments()}>
               Refresh
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="bg-red-950/60 hover:bg-red-900/60 text-red-400 text-xs font-bold py-2 px-3.5 rounded-lg transition"
-            >
+            </Button>
+            <Button color="tertiary" size="sm" iconLeading={LogOut01} onClick={handleLogout}>
               Logout
-            </button>
+            </Button>
           </div>
         </header>
 
-        {/* Main content */}
-        <main className="flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full space-y-5">
+        {/* Content */}
+        <main className="flex-1 p-5 md:p-6 max-w-6xl mx-auto w-full space-y-5">
+
           {error && (
-            <div className="bg-red-950/40 text-red-400 p-3 rounded-lg text-xs font-medium border border-red-900/30">
+            <div className="bg-bg-error-primary border border-utility-red-200 text-utility-red-700 px-4 py-3 rounded-lg text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="size-4 shrink-0" />
               {error}
             </div>
           )}
 
-          {/* Metric Cards */}
+          {/* Stat Cards — show skeletons while loading */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-client-card rounded-xl p-4 flex flex-col justify-between min-h-[90px]">
-              <span className="text-[10px] font-bold text-client-muted uppercase tracking-wider">Total Enrollments</span>
-              <h3 className="text-xl font-bold text-white mt-1">{stats.total}</h3>
-            </div>
-
-            <div className="bg-client-card rounded-xl p-4 flex flex-col justify-between min-h-[90px]">
-              <span className="text-[10px] font-bold text-client-muted uppercase tracking-wider">Confirmed Revenue</span>
-              <h3 className="text-xl font-bold text-client-accent mt-1">
-                KES {(Number(stats.revenue) || 0).toLocaleString()}
-              </h3>
-            </div>
-
-            <div className="bg-client-card rounded-xl p-4 flex flex-col justify-between min-h-[90px]">
-              <span className="text-[10px] font-bold text-client-muted uppercase tracking-wider">Pending Prompts</span>
-              <h3 className="text-xl font-bold text-amber-400 mt-1">{stats.pending}</h3>
-            </div>
-
-            <div className="bg-client-card rounded-xl p-4 flex flex-col justify-between min-h-[90px]">
-              <span className="text-[10px] font-bold text-client-muted uppercase tracking-wider">Failed Payments</span>
-              <h3 className="text-xl font-bold text-red-400 mt-1">{stats.failed}</h3>
-            </div>
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-bg-primary border border-border-secondary rounded-xl p-5 space-y-3 animate-pulse shadow-xs">
+                  <div className="h-2.5 w-24 bg-bg-tertiary rounded" />
+                  <div className="h-7 w-16 bg-bg-tertiary rounded" />
+                </div>
+              ))
+            ) : (
+              <>
+                <StatCard label="Total Enrollments"  value={stats.total} />
+                <StatCard label="Confirmed Revenue"   value={`KES ${(Number(stats.revenue) || 0).toLocaleString()}`} accent />
+                <StatCard label="Pending Prompts"     value={stats.pending} />
+                <StatCard label="Failed Payments"     value={stats.failed} />
+              </>
+            )}
           </div>
 
-          {/* Payments Table Card */}
-          <div className="bg-client-card rounded-xl overflow-hidden">
-            <div className="p-4 border-b border-client-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Table Card */}
+          <div className="bg-bg-primary border border-border-secondary rounded-xl overflow-hidden shadow-xs">
+
+            {/* Card header */}
+            <div className="px-5 py-4 border-b border-border-secondary flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h2 className="text-sm font-bold text-white">Student Enrollments</h2>
-                <p className="text-[10px] text-client-muted mt-0.5">Review and search student payment statuses</p>
+                <h2 className="text-sm font-bold text-text-primary">Enrollments</h2>
+                <p className="text-xs text-text-tertiary mt-0.5">Search and review student payment statuses</p>
               </div>
               <div className="w-full sm:w-64">
-                <input
-                  type="text"
-                  placeholder="Search name, email, phone, ref..."
+                <Input
+                  size="sm"
+                  placeholder="Search name, email, phone, ref…"
+                  icon={SearchMd}
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-client-input text-client-light placeholder-client-muted text-xs px-3.5 py-2 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition"
+                  onChange={(v) => setSearch(v)}
+                  aria-label="Search enrollments"
                 />
               </div>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex border-b border-client-border px-4 py-2 gap-2 overflow-x-auto select-none bg-client-card">
-              <button
-                onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === 'all' ? 'bg-client-accent text-client-dark' : 'text-client-muted hover:text-white'}`}
-              >
-                All ({payments.length})
-              </button>
-              <button
-                onClick={() => setStatusFilter('success')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === 'success' ? 'bg-green-950 text-green-400 border border-green-900/30' : 'text-client-muted hover:text-white'}`}
-              >
-                Confirmed ({payments.filter(p => p.status === 'success').length})
-              </button>
-              <button
-                onClick={() => setStatusFilter('pending')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === 'pending' ? 'bg-amber-950 text-amber-400 border border-amber-900/30' : 'text-client-muted hover:text-white'}`}
-              >
-                Pending ({payments.filter(p => p.status === 'pending').length})
-              </button>
-              <button
-                onClick={() => setStatusFilter('failed')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === 'failed' ? 'bg-red-950 text-red-400 border border-red-900/30' : 'text-client-muted hover:text-white'}`}
-              >
-                Failed ({payments.filter(p => p.status === 'failed').length})
-              </button>
+            {/* Filter tabs */}
+            <div className="flex border-b border-border-secondary px-5 gap-1 overflow-x-auto bg-bg-primary">
+              {STATUS_TABS.map(({ key, label }) => {
+                const count = key === 'all' ? payments.length : countByStatus(key as Payment['status'])
+                const isActive = statusFilter === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key)}
+                    className={`flex items-center gap-1.5 px-3 py-3 text-xs font-semibold transition border-b-2 whitespace-nowrap cursor-pointer ${
+                      isActive ? 'border-[#00A3A3] text-[#00A3A3]' : 'border-transparent text-text-tertiary hover:text-text-secondary'
+                    }`}
+                  >
+                    {label}
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${isActive ? 'bg-utility-brand-50 text-[#00A3A3]' : 'bg-bg-tertiary text-text-tertiary'}`}>
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
 
-            {isLoading ? (
-              <div className="p-10 flex flex-col items-center justify-center text-client-muted text-xs">
-                <div className="size-6 border-2 border-client-accent border-t-transparent rounded-full animate-spin mb-2"></div>
-                <span>Loading payment logs...</span>
-              </div>
-            ) : paginatedPayments.length === 0 ? (
-              <div className="p-10 text-center text-client-muted text-xs">
-                No payment logs found.
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left text-xs">
-                    <thead>
-                      <tr className="bg-client-inner-bg text-client-muted font-bold uppercase tracking-wider text-[9px]">
-                        <th className="px-5 py-3">Student Details</th>
-                        <th className="px-5 py-3">Phone Number</th>
-                        <th className="px-5 py-3">County & Level</th>
-                        <th className="px-5 py-3">Date & Ref</th>
-                        <th className="px-5 py-3">Amount</th>
-                        <th className="px-5 py-3">Receipt</th>
-                        <th className="px-5 py-3">Status</th>
-                        <th className="px-5 py-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-client-border">
-                      {paginatedPayments.map((p) => (
-                        <tr key={p.id} className="hover:bg-client-inner-bg/35 transition-colors">
-                          <td className="px-5 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="size-8 rounded-full bg-client-inner-bg text-client-accent flex items-center justify-center font-bold text-xs uppercase select-none flex-shrink-0">
-                                {p.name.charAt(0)}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="font-semibold text-white truncate max-w-[150px]">{p.name}</div>
-                                <div className="text-[10px] text-client-muted truncate max-w-[150px]">{p.email}</div>
-                              </div>
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-bg-secondary text-text-tertiary font-semibold uppercase tracking-wider text-[10px]">
+                    <th className="px-5 py-3">Student</th>
+                    <th className="px-5 py-3">Phone</th>
+                    <th className="px-5 py-3">County / Level</th>
+                    <th className="px-5 py-3">Date / Ref</th>
+                    <th className="px-5 py-3">Amount</th>
+                    <th className="px-5 py-3">M-Pesa Receipt</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-secondary">
+                  {isLoading ? (
+                    <SkeletonRows />
+                  ) : paginatedPayments.length === 0 ? (
+                    <EmptyState filtered={search !== '' || statusFilter !== 'all'} />
+                  ) : (
+                    paginatedPayments.map((p) => (
+                      <tr key={p.id} className="hover:bg-bg-secondary/60 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="size-8 rounded-full bg-utility-brand-50 text-[#00A3A3] flex items-center justify-center font-bold text-xs uppercase select-none shrink-0">
+                              {p.name.charAt(0)}
                             </div>
-                          </td>
-                          <td className="px-5 py-3 text-client-light font-medium">
-                            {p.phone}
-                            {p.referral && (
-                              <div className="text-[10px] text-client-muted font-normal">Via: {p.referral}</div>
-                            )}
-                          </td>
-                          <td className="px-5 py-3 text-client-light">
-                            <div>{p.county}</div>
-                            <div className="text-[10px] text-client-muted">{p.study_level}</div>
-                          </td>
-                          <td className="px-5 py-3">
-                            <div className="text-client-light">{new Date(p.created_at).toLocaleDateString()}</div>
-                            <div className="text-[10px] font-mono text-client-muted">{p.reference}</div>
-                          </td>
-                          <td className="px-5 py-3 font-bold text-white">
-                            KES {p.amount.toLocaleString()}
-                          </td>
-                          <td className="px-5 py-3 font-mono text-client-accent">
-                            {p.mpesa_receipt || <span className="text-client-muted">—</span>}
-                          </td>
-                          <td className="px-5 py-3">
-                            {p.status === 'success' && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-950/40 text-green-400 border border-green-900/30">Confirmed</span>
-                            )}
-                            {p.status === 'pending' && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950/40 text-amber-400 border border-amber-900/30">Pending</span>
-                            )}
-                            {p.status === 'failed' && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-950/40 text-red-400 border border-red-900/30">Failed</span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3 text-right">
-                            {p.status === 'success' ? (
-                              <button
-                                onClick={() => setSelectedReceipt(p)}
-                                className="bg-client-accent hover:bg-client-accent-hover text-client-dark text-[10px] font-bold py-1 px-2.5 rounded transition cursor-pointer"
-                              >
-                                View Receipt
-                              </button>
-                            ) : (
-                              <span className="text-client-muted text-[10px]">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-text-primary truncate max-w-[140px]">{p.name}</div>
+                              <div className="text-[10px] text-text-tertiary truncate max-w-[140px]">{p.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-text-secondary font-medium">
+                          {p.phone}
+                          {p.referral && <div className="text-[10px] text-text-tertiary">Via: {p.referral}</div>}
+                        </td>
+                        <td className="px-5 py-3.5 text-text-secondary">
+                          <div>{p.county}</div>
+                          <div className="text-[10px] text-text-tertiary">{p.study_level}</div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="text-text-secondary">{new Date(p.created_at).toLocaleDateString()}</div>
+                          <div className="text-[10px] font-mono text-text-tertiary">{p.reference}</div>
+                        </td>
+                        <td className="px-5 py-3.5 font-bold text-text-primary">
+                          KES {p.amount.toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3.5 font-mono text-[#00A3A3] text-xs">
+                          {p.mpesa_receipt || <span className="text-text-tertiary">—</span>}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <StatusBadge status={p.status} />
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          {p.status === 'success' ? (
+                            <Button size="xs" color="secondary" onClick={() => setSelectedReceipt(p)}>
+                              View Receipt
+                            </Button>
+                          ) : (
+                            <span className="text-text-tertiary">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-                {/* Table Footer with Pagination */}
-                {totalPages > 1 && (
-                  <div className="p-4 border-t border-client-border flex items-center justify-between text-xs font-semibold select-none text-client-muted">
+            {/* Pagination */}
+            {!isLoading && totalPages > 1 && (
+              <div className="px-5 py-3.5 border-t border-border-secondary flex items-center justify-between text-xs text-text-tertiary font-semibold">
+                <Button size="xs" color="secondary" disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}>
+                  ← Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1.5 rounded-lg bg-client-inner-bg hover:bg-client-border disabled:opacity-40 transition cursor-pointer"
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`size-7 rounded-lg flex items-center justify-center text-xs font-semibold transition cursor-pointer ${
+                        currentPage === page ? 'bg-[#00A3A3] text-white' : 'hover:bg-bg-secondary text-text-tertiary'
+                      }`}
                     >
-                      &lt; Previous
+                      {page}
                     </button>
-                    
-                    <div className="flex items-center gap-1.5">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`size-7 rounded-lg flex items-center justify-center transition cursor-pointer ${currentPage === page ? 'bg-client-accent text-client-dark font-bold' : 'hover:bg-client-inner-bg'}`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                    </div>
-                    
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-1.5 rounded-lg bg-client-inner-bg hover:bg-client-border disabled:opacity-40 transition cursor-pointer"
-                    >
-                      Next &gt;
-                    </button>
-                  </div>
-                )}
-              </>
+                  ))}
+                </div>
+                <Button size="xs" color="secondary" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}>
+                  Next →
+                </Button>
+              </div>
             )}
           </div>
         </main>
       </div>
 
-      {/* Receipt Modal */}
+      {/* ── Receipt Modal ────────────────────────────────────────── */}
       {selectedReceipt && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-client-card border border-client-border rounded-2xl w-full max-w-[420px] p-6 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            {/* Header */}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-bg-primary border border-border-secondary rounded-2xl w-full max-w-[420px] p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <div className="size-8 rounded-lg bg-client-accent flex items-center justify-center text-client-dark font-extrabold text-sm">
-                  MA
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-utility-brand-50 flex items-center justify-center">
+                  <span className="text-[#00A3A3] font-black text-sm">M</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">MedAssist Academy</h3>
-                  <p className="text-[10px] text-client-muted">Official Payment Receipt</p>
+                  <h3 className="font-bold text-text-primary text-sm">MedAssist Academy</h3>
+                  <p className="text-xs text-text-tertiary">Official Payment Receipt</p>
                 </div>
               </div>
-              <button
-                onClick={() => setSelectedReceipt(null)}
-                className="text-client-muted hover:text-white text-sm font-bold p-1 transition cursor-pointer"
-              >
-                ✕
+              <button onClick={() => setSelectedReceipt(null)} className="text-text-tertiary hover:text-text-primary p-1.5 rounded-lg hover:bg-bg-secondary transition cursor-pointer">
+                <X className="size-4" />
               </button>
             </div>
 
-            {/* Receipt Content */}
-            <div className="bg-client-inner-bg rounded-xl p-5 border border-client-border/50 space-y-4 text-xs">
-              <div className="flex justify-between items-center pb-3 border-b border-client-border/50">
-                <span className="text-client-muted">Receipt No:</span>
-                <span className="font-mono font-bold text-client-accent text-sm">{selectedReceipt.mpesa_receipt}</span>
+            <div className="bg-bg-secondary rounded-xl p-5 border border-border-secondary space-y-4 text-xs">
+              <div className="flex justify-between items-center pb-3 border-b border-border-secondary">
+                <span className="text-text-tertiary font-medium">Receipt No:</span>
+                <span className="font-mono font-bold text-[#00A3A3] text-sm">{selectedReceipt.mpesa_receipt}</span>
               </div>
-
-              <div className="space-y-2.5 pt-1">
-                <div className="flex justify-between">
-                  <span className="text-client-muted">Student Name:</span>
-                  <span className="font-semibold text-white">{selectedReceipt.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-client-muted">Email:</span>
-                  <span className="font-semibold text-white truncate max-w-[200px]">{selectedReceipt.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-client-muted">Phone:</span>
-                  <span className="font-semibold text-white">{selectedReceipt.phone}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-client-muted">Location:</span>
-                  <span className="font-semibold text-white">{selectedReceipt.county}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-client-muted">Level:</span>
-                  <span className="font-semibold text-white">{selectedReceipt.study_level}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-client-muted">Ref ID:</span>
-                  <span className="font-mono text-client-muted truncate max-w-[150px]">{selectedReceipt.reference}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-client-muted">Date & Time:</span>
-                  <span className="font-semibold text-white">
-                    {new Date(selectedReceipt.paid_at || selectedReceipt.created_at).toLocaleString()}
-                  </span>
-                </div>
+              <div className="space-y-2.5">
+                {([
+                  ['Student Name', selectedReceipt.name],
+                  ['Email', selectedReceipt.email],
+                  ['Phone', selectedReceipt.phone],
+                  ['Location', selectedReceipt.county],
+                  ['Study Level', selectedReceipt.study_level],
+                  ['Ref ID', selectedReceipt.reference],
+                  ['Date & Time', new Date(selectedReceipt.paid_at || selectedReceipt.created_at).toLocaleString()],
+                ] as [string, string][]).map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-text-tertiary shrink-0">{label}:</span>
+                    <span className="font-semibold text-text-primary text-right truncate max-w-[220px]">{value}</span>
+                  </div>
+                ))}
               </div>
-
-              <div className="flex justify-between items-center pt-4 border-t border-client-border/50">
-                <span className="font-bold text-white">Amount Paid:</span>
-                <span className="font-extrabold text-client-accent text-base">
-                  KES {selectedReceipt.amount.toLocaleString()}
-                </span>
+              <div className="flex justify-between items-center pt-3 border-t border-border-secondary">
+                <span className="font-bold text-text-primary">Amount Paid:</span>
+                <span className="font-extrabold text-[#00A3A3] text-base">KES {selectedReceipt.amount.toLocaleString()}</span>
               </div>
             </div>
 
-            {/* Paid Badge Status */}
             <div className="flex justify-center">
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-green-950/60 text-green-400 border border-green-900/40">
-                ● Payment Confirmed
-              </span>
+              <Badge color="success" type="pill-color" size="md">✓ Payment Confirmed</Badge>
             </div>
 
-            {/* Print / Close Actions */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <button
-                onClick={() => window.print()}
-                className="bg-client-inner-bg hover:bg-client-border text-white text-xs font-bold py-2.5 rounded-lg transition cursor-pointer"
-              >
-                Print Receipt
-              </button>
-              <button
-                onClick={() => setSelectedReceipt(null)}
-                className="bg-client-accent hover:bg-client-accent-hover text-client-dark text-xs font-bold py-2.5 rounded-lg transition cursor-pointer"
-              >
+            <div className="grid grid-cols-2 gap-3">
+              <Button color="secondary" size="md" iconLeading={Printer} onClick={() => window.print()}>
+                Print
+              </Button>
+              <Button color="primary" size="md" onClick={() => setSelectedReceipt(null)}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         </div>

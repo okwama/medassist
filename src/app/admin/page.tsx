@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Lock01, User01 } from '@untitledui/icons'
+import { Input } from '@/components/base/input/input'
+import { Button } from '@/components/base/buttons/button'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -38,60 +41,64 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-client-bg px-4">
-      <div className="w-full max-w-[400px] bg-client-card rounded-2xl p-6 space-y-6">
-        
-        {/* Title */}
-        <div className="text-center space-y-1.5">
-          <h2 className="text-lg font-bold text-white">Admin Console</h2>
-          <p className="text-xs text-client-muted">Sign in to access your course dashboard</p>
+    <div className="flex min-h-screen items-center justify-center bg-bg-secondary px-4">
+      {/* Card */}
+      <div className="w-full max-w-[400px] bg-bg-primary rounded-2xl shadow-lg border border-border-secondary p-8 space-y-7">
+
+        {/* Brand header */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center size-12 rounded-xl bg-utility-brand-50 mx-auto">
+            <span className="text-[#00A3A3] text-xl font-black">M</span>
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold text-text-primary">MedAssist Academy</h1>
+            <p className="text-sm text-text-tertiary">Sign in to your admin console</p>
+          </div>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          {error && (
-            <div className="bg-red-950/40 text-red-400 p-3 rounded-lg text-xs font-medium border border-red-900/30">
-              {error}
-            </div>
-          )}
-
-          {/* Username */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-client-accent tracking-wider block">USERNAME</label>
-            <input
-              type="text"
-              placeholder="Enter username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-client-input text-client-light placeholder-client-muted text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition"
-              required
-              disabled={isLoading}
-            />
+        {/* Error alert */}
+        {error && (
+          <div className="bg-bg-error-primary border border-utility-red-200 text-utility-red-700 px-4 py-3 rounded-lg text-sm font-medium">
+            {error}
           </div>
+        )}
 
-          {/* Password */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-client-accent tracking-wider block">PASSWORD</label>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-client-input text-client-light placeholder-client-muted text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition"
-              required
-              disabled={isLoading}
-            />
-          </div>
+        {/* Form */}
+        <form onSubmit={handleLogin} className="space-y-5">
+          <Input
+            label="Username"
+            placeholder="Enter your username"
+            icon={User01}
+            size="md"
+            value={username}
+            onChange={(v) => setUsername(v)}
+            isDisabled={isLoading}
+            isRequired
+          />
 
-          <button
+          <Input
+            label="Password"
+            placeholder="Enter your password"
+            icon={Lock01}
+            type="password"
+            size="md"
+            value={password}
+            onChange={(v) => setPassword(v)}
+            isDisabled={isLoading}
+            isRequired
+          />
+
+          <Button
             type="submit"
-            disabled={isLoading}
-            className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active disabled:opacity-50 transition flex items-center justify-center text-sm mt-2"
+            color="primary"
+            size="lg"
+            className="w-full justify-center"
+            isDisabled={isLoading}
           >
-            {isLoading ? 'Signing in...' : 'Sign in'}
-          </button>
+            {isLoading ? 'Signing in…' : 'Sign in'}
+          </Button>
         </form>
       </div>
     </div>
   )
 }
-
