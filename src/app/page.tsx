@@ -84,15 +84,17 @@ export default function CheckoutPage() {
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setIsSubmitting(true)
 
     const cleanMpesaPhone = mpesaPhone.trim().replace(/\s+/g, '')
     const kenyanPhoneRegex = /^(?:254|\+254|0)?(7|1)\d{8}$/
     if (!cleanMpesaPhone || !kenyanPhoneRegex.test(cleanMpesaPhone)) {
       setError('Please enter a valid M-Pesa phone number')
-      setIsSubmitting(false)
       return
     }
+
+    // Jump to Step 3 immediately so the user sees feedback right away
+    setIsSubmitting(true)
+    setStep(3)
 
     try {
       const res = await fetch('/api/initiate', {
@@ -114,12 +116,13 @@ export default function CheckoutPage() {
       }
 
       setReference(data.reference)
-      setStep(3)
       setPollingStatus('pending')
+      setIsSubmitting(false)
       startPolling(data.reference)
     } catch (err: any) {
       setError(err.message)
       setIsSubmitting(false)
+      setStep(2) // return to payment step on failure
     }
   }
 
@@ -363,45 +366,50 @@ export default function CheckoutPage() {
 
           {step === 3 && (
             <div className="space-y-6">
-              <div>
-                <h1 className="text-xl font-bold text-white">Check Your Phone 📱</h1>
-                <p className="text-xs text-client-muted mt-1">Enter your M-Pesa PIN to complete payment</p>
-              </div>
+              {isSubmitting ? (
+                /* ── Phase 1: Sending the STK push request ── */
+                <div className="flex flex-col items-center justify-center py-10 space-y-4">
+                  <div className="size-12 border-4 border-client-accent border-t-transparent rounded-full animate-spin" />
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-bold text-white">Sending M-Pesa Request…</p>
+                    <p className="text-[11px] text-client-muted">Please wait, this only takes a moment</p>
+                  </div>
+                </div>
+              ) : (
+                /* ── Phase 2: Push sent — waiting for user to enter PIN ── */
+                <>
+                  <div>
+                    <h1 className="text-xl font-bold text-white">Check Your Phone 📱</h1>
+                    <p className="text-xs text-client-muted mt-1">Enter your M-Pesa PIN to complete payment</p>
+                  </div>
 
-              {/* Status Message */}
-              <div className="bg-client-inner-bg rounded-xl p-4.5 border-l-4 border-client-accent text-xs text-client-text leading-relaxed">
-                An M-Pesa STK Push has been sent to <strong className="text-white">{mpesaPhone}</strong>. Enter your <strong className="text-white">M-Pesa PIN</strong> on your phone when prompted, then tap &quot;Confirm&quot; below.
-              </div>
+                  {/* Status Message */}
+                  <div className="bg-client-inner-bg rounded-xl p-4.5 border-l-4 border-client-accent text-xs text-client-text leading-relaxed">
+                    An M-Pesa STK Push has been sent to <strong className="text-white">{mpesaPhone}</strong>. Enter your <strong className="text-white">M-Pesa PIN</strong> on your phone when prompted.
+                  </div>
 
-              {/* Polling Spinner */}
-              <div className="flex flex-col items-center justify-center py-6 space-y-3">
-                <div className="size-10 border-4 border-client-accent border-t-transparent rounded-full animate-spin"></div>
-                <div className="text-xs font-bold text-white">Waiting for payment...</div>
-                <div className="text-[10px] text-client-muted">Please enter your M-Pesa PIN on your phone</div>
-              </div>
+                  {/* Polling Spinner */}
+                  <div className="flex flex-col items-center justify-center py-6 space-y-3">
+                    <div className="size-10 border-4 border-client-accent border-t-transparent rounded-full animate-spin" />
+                    <div className="text-xs font-bold text-white">Waiting for payment…</div>
+                    <div className="text-[10px] text-client-muted">This page will update automatically</div>
+                  </div>
 
-              {/* Actions */}
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    // Check status manually or just trigger poll success/check
-                    startPolling(reference)
-                  }}
-                  className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active transition text-sm"
-                >
-                  I&apos;ve Entered My PIN ✓
-                </button>
-
-                <button
-                  onClick={() => {
-                    setStep(2)
-                    setIsSubmitting(false)
-                  }}
-                  className="w-full text-client-muted hover:text-client-accent text-xs font-bold py-2.5 transition"
-                >
-                  ← Resend prompt
-                </button>
-              </div>
+                  {/* Actions */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        setStep(2)
+                        setIsSubmitting(false)
+                        setPollingStatus('')
+                      }}
+                      className="w-full text-client-muted hover:text-client-accent text-xs font-bold py-2.5 transition"
+                    >
+                      ← Resend prompt / Change number
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
