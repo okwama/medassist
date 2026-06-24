@@ -24,7 +24,7 @@ const referralOptions = [
 const COURSE_NAME = process.env.NEXT_PUBLIC_COURSE_NAME || 'MedAssist Academy'
 const COURSE_DURATION = '6 Weeks · Sat & Sun'
 const COURSE_START_DATE = '15 August 2026'
-const COURSE_PRICE = 8000
+const COURSE_PRICE = 1
 
 export default function CheckoutPage() {
   const router = useRouter()

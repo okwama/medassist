@@ -4,7 +4,18 @@ const BASE_URL = process.env.DARAJA_ENV === 'production'
   ? 'https://api.safaricom.co.ke'
   : 'https://sandbox.safaricom.co.ke'
 
+// ---------------------------------------------------------------------------
+// Token cache – Daraja tokens are valid for 1 hour; we refresh after 55 min
+// ---------------------------------------------------------------------------
+let _cachedToken: string | null = null
+let _tokenExpiry = 0 // Unix ms
+
 export async function getDarajaToken(): Promise<string> {
+  const now = Date.now()
+  if (_cachedToken && now < _tokenExpiry) {
+    return _cachedToken
+  }
+
   const key = process.env.DARAJA_CONSUMER_KEY!
   const secret = process.env.DARAJA_CONSUMER_SECRET!
   const auth = Buffer.from(`${key}:${secret}`).toString('base64')
@@ -19,7 +30,9 @@ export async function getDarajaToken(): Promise<string> {
   }
 
   const data: DarajaAuthResponse = await res.json()
-  return data.access_token
+  _cachedToken = data.access_token
+  _tokenExpiry = now + 55 * 60 * 1000 // cache for 55 minutes
+  return _cachedToken
 }
 
 export async function sendSTKPush(

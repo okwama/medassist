@@ -1,257 +1,147 @@
-import mysql from 'mysql2/promise'
+import { neon } from '@neondatabase/serverless'
 import { PaymentRecord } from '@/types'
-import fs from 'fs'
-import path from 'path'
 
-const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST || '102.210.146.74',
-  port: Number(process.env.MYSQL_PORT) || 3306,
-  user: process.env.MYSQL_USER || 'gizmojun_payments',
-  password: process.env.MYSQL_PASSWORD || 'RAj8yQPMpGC8ze8kTa7p',
-  database: process.env.MYSQL_DATABASE || 'gizmojun_payments',
-  waitForConnections: true,
-  connectionLimit: 10,
-})
+// ---------------------------------------------------------------------------
+// Neon serverless SQL client – uses HTTP transport, works on Vercel edge/serverless
+// ---------------------------------------------------------------------------
+const sql = neon(process.env.DATABASE_URL!)
 
-const localDbPath = path.join(process.cwd(), 'payments_db.json')
-let useLocalFile = false
-
-// Helper to read local JSON database
-const readLocalDb = (): PaymentRecord[] => {
-  if (!fs.existsSync(localDbPath)) {
-    fs.writeFileSync(localDbPath, JSON.stringify([]))
-    return []
-  }
-  try {
-    const data = fs.readFileSync(localDbPath, 'utf8')
-    return JSON.parse(data)
-  } catch {
-    return []
-  }
-}
-
-// Helper to write local JSON database
-const writeLocalDb = (data: PaymentRecord[]) => {
-  fs.writeFileSync(localDbPath, JSON.stringify(data, null, 2))
-}
-
-// Helper to execute query with MySQL or local file fallback
-async function executeQuery<T>(mysqlFn: () => Promise<T>, fallbackFn: () => T | Promise<T>): Promise<T> {
-  if (useLocalFile) {
-    return fallbackFn()
-  }
-  try {
-    return await mysqlFn()
-  } catch (err: any) {
-    if (err.code === 'ECONNREFUSED' || err.syscall === 'connect' || err.message?.includes('connect')) {
-      console.warn('MySQL connection refused. Falling back to local payments_db.json database.')
-      useLocalFile = true
-      return fallbackFn()
-    }
-    throw err;
-  }
-}
-
-// Auto-initialize the database table
+// ---------------------------------------------------------------------------
+// Auto-initialize the payments table (PostgreSQL syntax)
+// ---------------------------------------------------------------------------
 export async function initDb() {
-  return executeQuery(
-    async () => {
-      const conn = await pool.getConnection()
-      await conn.query(`
-        CREATE TABLE IF NOT EXISTS payments (
-          id              INT AUTO_INCREMENT PRIMARY KEY,
-          reference       VARCHAR(50)  NOT NULL UNIQUE,
-          name            VARCHAR(100) NOT NULL,
-          email           VARCHAR(100) NOT NULL,
-          phone           VARCHAR(20)  NOT NULL,
-          county          VARCHAR(50)  NOT NULL,
-          study_level     VARCHAR(50)  NOT NULL,
-          referral        VARCHAR(50)  NOT NULL,
-          course          VARCHAR(100) NOT NULL,
-          amount          INT          NOT NULL DEFAULT 8000,
-          status          ENUM('pending','success','failed') NOT NULL DEFAULT 'pending',
-          mpesa_receipt   VARCHAR(50)  NULL,
-          checkout_request_id VARCHAR(100) NULL,
-          created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          paid_at         DATETIME     NULL,
-          INDEX idx_reference (reference),
-          INDEX idx_status (status),
-          INDEX idx_email (email)
-        )
-      `)
-      conn.release()
-      console.log('MySQL Database initialized successfully')
-    },
-    () => {
-      if (!fs.existsSync(localDbPath)) {
-        writeLocalDb([])
-      }
-      console.log('Local JSON Database initialized successfully')
-    }
-  )
+  await sql`
+    CREATE TABLE IF NOT EXISTS payments (
+      id                  SERIAL PRIMARY KEY,
+      reference           VARCHAR(50)  NOT NULL UNIQUE,
+      name                VARCHAR(100) NOT NULL,
+      email               VARCHAR(100) NOT NULL,
+      phone               VARCHAR(20)  NOT NULL,
+      county              VARCHAR(50)  NOT NULL,
+      study_level         VARCHAR(50)  NOT NULL,
+      referral            VARCHAR(50)  NOT NULL,
+      course              VARCHAR(100) NOT NULL,
+      amount              INT          NOT NULL DEFAULT 8000,
+      status              VARCHAR(20)  NOT NULL DEFAULT 'pending'
+                            CHECK (status IN ('pending','success','failed')),
+      mpesa_receipt       VARCHAR(50)  NULL,
+      checkout_request_id VARCHAR(100) NULL,
+      created_at          TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      paid_at             TIMESTAMPTZ  NULL
+    )
+  `
+
+  // Ensure indexes exist (idempotent)
+  await sql`CREATE INDEX IF NOT EXISTS idx_reference ON payments (reference)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_status    ON payments (status)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_email     ON payments (email)`
+  await sql`CREATE INDEX IF NOT EXISTS idx_checkout  ON payments (checkout_request_id)`
+
+  console.log('Neon PostgreSQL database initialized successfully')
 }
 
+// ---------------------------------------------------------------------------
+// Insert a new payment record (status = pending)
+// ---------------------------------------------------------------------------
 export async function insertPayment(record: PaymentRecord) {
-  return executeQuery(
-    async () => {
-      await pool.execute(
-        `INSERT INTO payments 
-         (reference, name, email, phone, county, study_level, referral, course, amount, status, checkout_request_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-        [
-          record.reference,
-          record.name,
-          record.email,
-          record.phone,
-          record.county,
-          record.study_level,
-          record.referral,
-          record.course,
-          record.amount,
-          record.checkout_request_id || null
-        ]
-      )
-    },
-    () => {
-      const db = readLocalDb()
-      db.push({
-        ...record,
-        status: 'pending',
-        created_at: new Date()
-      })
-      writeLocalDb(db)
-    }
-  )
+  await sql`
+    INSERT INTO payments
+      (reference, name, email, phone, county, study_level, referral,
+       course, amount, status, checkout_request_id)
+    VALUES
+      (${record.reference}, ${record.name}, ${record.email}, ${record.phone},
+       ${record.county}, ${record.study_level}, ${record.referral},
+       ${record.course}, ${record.amount}, 'pending',
+       ${record.checkout_request_id ?? null})
+    ON CONFLICT (reference) DO NOTHING
+  `
 }
 
+// ---------------------------------------------------------------------------
+// Update payment status by reference
+// ---------------------------------------------------------------------------
 export async function updatePaymentStatus(
   reference: string,
   status: 'success' | 'failed',
   mpesaReceipt?: string
 ) {
-  return executeQuery(
-    async () => {
-      await pool.execute(
-        `UPDATE payments SET status = ?, mpesa_receipt = ?, paid_at = ?
-         WHERE reference = ?`,
-        [status, mpesaReceipt || null, status === 'success' ? new Date() : null, reference]
-      )
-    },
-    () => {
-      const db = readLocalDb()
-      const item = db.find(p => p.reference === reference)
-      if (item) {
-        item.status = status
-        item.mpesa_receipt = mpesaReceipt
-        item.paid_at = status === 'success' ? new Date() : undefined
-        writeLocalDb(db)
-      }
-    }
-  )
+  await sql`
+    UPDATE payments
+    SET
+      status        = ${status},
+      mpesa_receipt = ${mpesaReceipt ?? null},
+      paid_at       = ${status === 'success' ? new Date().toISOString() : null}
+    WHERE reference = ${reference}
+  `
 }
 
+// ---------------------------------------------------------------------------
+// Update payment status by Safaricom CheckoutRequestID (used in callback)
+// ---------------------------------------------------------------------------
 export async function updatePaymentStatusByCheckoutRequestId(
   checkoutRequestId: string,
   status: 'success' | 'failed',
   mpesaReceipt?: string
 ) {
-  return executeQuery(
-    async () => {
-      await pool.execute(
-        `UPDATE payments SET status = ?, mpesa_receipt = ?, paid_at = ?
-         WHERE checkout_request_id = ?`,
-        [status, mpesaReceipt || null, status === 'success' ? new Date() : null, checkoutRequestId]
-      )
-    },
-    () => {
-      const db = readLocalDb()
-      const item = db.find(p => p.checkout_request_id === checkoutRequestId)
-      if (item) {
-        item.status = status
-        item.mpesa_receipt = mpesaReceipt
-        item.paid_at = status === 'success' ? new Date() : undefined
-        writeLocalDb(db)
-      }
-    }
-  )
+  await sql`
+    UPDATE payments
+    SET
+      status        = ${status},
+      mpesa_receipt = ${mpesaReceipt ?? null},
+      paid_at       = ${status === 'success' ? new Date().toISOString() : null}
+    WHERE checkout_request_id = ${checkoutRequestId}
+  `
 }
 
+// ---------------------------------------------------------------------------
+// Fetch a single payment by reference
+// ---------------------------------------------------------------------------
 export async function getPaymentByReference(reference: string): Promise<PaymentRecord | null> {
-  return executeQuery(
-    async () => {
-      const [rows] = await pool.execute<any[]>(
-        'SELECT * FROM payments WHERE reference = ? LIMIT 1',
-        [reference]
-      )
-      return rows[0] || null
-    },
-    () => {
-      const db = readLocalDb()
-      return db.find(p => p.reference === reference) || null
-    }
-  )
+  const rows = await sql`
+    SELECT * FROM payments WHERE reference = ${reference} LIMIT 1
+  `
+  return (rows[0] as PaymentRecord) ?? null
 }
 
+// ---------------------------------------------------------------------------
+// Fetch a single payment by CheckoutRequestID
+// ---------------------------------------------------------------------------
 export async function getPaymentByCheckoutRequestId(checkoutRequestId: string): Promise<PaymentRecord | null> {
-  return executeQuery(
-    async () => {
-      const [rows] = await pool.execute<any[]>(
-        'SELECT * FROM payments WHERE checkout_request_id = ? LIMIT 1',
-        [checkoutRequestId]
-      )
-      return rows[0] || null
-    },
-    () => {
-      const db = readLocalDb()
-      return db.find(p => p.checkout_request_id === checkoutRequestId) || null
-    }
-  )
+  const rows = await sql`
+    SELECT * FROM payments WHERE checkout_request_id = ${checkoutRequestId} LIMIT 1
+  `
+  return (rows[0] as PaymentRecord) ?? null
 }
 
+// ---------------------------------------------------------------------------
+// Fetch all payments ordered by newest first (admin dashboard)
+// ---------------------------------------------------------------------------
 export async function getAllPayments(): Promise<PaymentRecord[]> {
-  return executeQuery(
-    async () => {
-      const [rows] = await pool.execute<any[]>(
-        'SELECT * FROM payments ORDER BY created_at DESC'
-      )
-      return rows
-    },
-    () => {
-      const db = readLocalDb()
-      return db.sort((a, b) => {
-        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0
-        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0
-        return dateB - dateA
-      })
-    }
-  )
+  const rows = await sql`
+    SELECT * FROM payments ORDER BY created_at DESC
+  `
+  return rows as PaymentRecord[]
 }
 
+// ---------------------------------------------------------------------------
+// Aggregate stats for the admin dashboard header cards
+// ---------------------------------------------------------------------------
 export async function getPaymentStats() {
-  return executeQuery(
-    async () => {
-      const [rows] = await pool.execute<any[]>(`
-        SELECT
-          COUNT(*) as total,
-          SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as paid,
-          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-          SUM(CASE WHEN status = 'failed'  THEN 1 ELSE 0 END) as failed,
-          SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as revenue
-        FROM payments
-      `)
-      return rows[0] || { total: 0, paid: 0, pending: 0, failed: 0, revenue: 0 }
-    },
-    () => {
-      const db = readLocalDb()
-      const total = db.length
-      const paid = db.filter(p => p.status === 'success').length
-      const pending = db.filter(p => p.status === 'pending').length
-      const failed = db.filter(p => p.status === 'failed').length
-      const revenue = db.filter(p => p.status === 'success').reduce((sum, p) => sum + p.amount, 0)
-      return { total, paid, pending, failed, revenue }
-    }
-  )
+  const rows = await sql`
+    SELECT
+      COUNT(*)                                                  AS total,
+      COUNT(*) FILTER (WHERE status = 'success')               AS paid,
+      COUNT(*) FILTER (WHERE status = 'pending')               AS pending,
+      COUNT(*) FILTER (WHERE status = 'failed')                AS failed,
+      COALESCE(SUM(amount) FILTER (WHERE status = 'success'), 0) AS revenue
+    FROM payments
+  `
+  const r = rows[0] ?? {}
+  return {
+    total:   Number(r.total   ?? 0),
+    paid:    Number(r.paid    ?? 0),
+    pending: Number(r.pending ?? 0),
+    failed:  Number(r.failed  ?? 0),
+    revenue: Number(r.revenue ?? 0),
+  }
 }
-
-export { pool }
-

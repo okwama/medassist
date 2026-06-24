@@ -36,8 +36,12 @@ export async function GET(req: NextRequest) {
             await updatePaymentStatus(reference, 'success', receipt)
             record.status = 'success'
             record.mpesa_receipt = receipt
+          } else if (resultCode === '4999' || resultCode === 4999) {
+            // "4999" means the transaction is still under processing/pending.
+            // Do not update status, let the client keep polling.
+            record.status = 'pending'
           } else {
-            // Any non-zero ResultCode indicates a finalized transaction failure (e.g. cancelled, timed out, insufficient funds)
+            // Any other non-zero ResultCode indicates a finalized transaction failure (e.g. cancelled, timed out, insufficient funds)
             await updatePaymentStatus(reference, 'failed')
             record.status = 'failed'
           }

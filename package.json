@@ -8,6 +8,7 @@
         "start": "next start"
     },
     "dependencies": {
+        "@neondatabase/serverless": "^1.1.0",
         "@tailwindcss/postcss": "^4.2.2",
         "@tailwindcss/typography": "^0.5.19",
         "@untitledui/file-icons": "^0.0.9",
