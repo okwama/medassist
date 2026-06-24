@@ -144,6 +144,8 @@ export default function CheckoutPage() {
           } else if (data.status === 'failed') {
             clearInterval(interval)
             setPollingStatus('failed')
+            setIsSubmitting(false)
+            setStep(2)
             setError('Payment was cancelled or failed. Please try again.')
           }
         }
@@ -154,6 +156,8 @@ export default function CheckoutPage() {
       if (attempts >= maxAttempts) {
         clearInterval(interval)
         setPollingStatus('failed')
+        setIsSubmitting(false)
+        setStep(2)
         setError('Transaction timed out. If you already entered your PIN, please check your email for confirmation shortly or contact support.')
       }
     }, 3000)
@@ -195,7 +199,7 @@ export default function CheckoutPage() {
           {step === 1 && (
             <div className="space-y-4">
               <div>
-                <h1 className="text-xl font-bold text-white">Your Details</h1>
+                <h1 className="text-xl font-bold text-client-light">Your Details</h1>
                 <p className="text-xs text-client-muted mt-1">Fill in your information to reserve your spot</p>
               </div>
 
@@ -294,7 +298,7 @@ export default function CheckoutPage() {
           {step === 2 && (
             <div className="space-y-5">
               <div>
-                <h1 className="text-xl font-bold text-white">Order Summary</h1>
+                <h1 className="text-xl font-bold text-client-light">Order Summary</h1>
                 <p className="text-xs text-client-muted mt-1">Review your details before paying</p>
               </div>
 
@@ -302,19 +306,19 @@ export default function CheckoutPage() {
               <div className="bg-client-inner-bg rounded-xl p-4.5 space-y-3.5 text-xs text-client-text">
                 <div className="flex justify-between items-center">
                   <span>Programme</span>
-                  <span className="font-semibold text-white">{COURSE_NAME}</span>
+                  <span className="font-semibold text-client-light">{COURSE_NAME}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Duration</span>
-                  <span className="font-semibold text-white">{COURSE_DURATION}</span>
+                  <span className="font-semibold text-client-light">{COURSE_DURATION}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Start Date</span>
-                  <span className="font-semibold text-white">{COURSE_START_DATE}</span>
+                  <span className="font-semibold text-client-light">{COURSE_START_DATE}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Name</span>
-                  <span className="font-semibold text-white">{name}</span>
+                  <span className="font-semibold text-client-light">{name}</span>
                 </div>
                 <div className="flex justify-between items-center pt-2.5 border-t border-client-border">
                   <span className="font-bold text-client-text">Total</span>
@@ -326,7 +330,7 @@ export default function CheckoutPage() {
               <div className="bg-client-inner-bg rounded-xl p-4.5 flex items-center gap-3.5">
                 <img src="/mpesa.png" alt="M-Pesa" className="size-10 object-contain rounded-lg flex-shrink-0" />
                 <div>
-                  <h4 className="text-xs font-bold text-white">Pay via M-Pesa STK Push</h4>
+                  <h4 className="text-xs font-bold text-client-light">Pay via M-Pesa STK Push</h4>
                   <p className="text-[10px] text-client-muted mt-0.5">An M-Pesa prompt will be sent to your phone</p>
                 </div>
               </div>
@@ -371,7 +375,7 @@ export default function CheckoutPage() {
                 <div className="flex flex-col items-center justify-center py-10 space-y-4">
                   <div className="size-12 border-4 border-client-accent border-t-transparent rounded-full animate-spin" />
                   <div className="text-center space-y-1">
-                    <p className="text-sm font-bold text-white">Sending M-Pesa Request…</p>
+                    <p className="text-sm font-bold text-client-light">Sending M-Pesa Request…</p>
                     <p className="text-[11px] text-client-muted">Please wait, this only takes a moment</p>
                   </div>
                 </div>
@@ -379,19 +383,19 @@ export default function CheckoutPage() {
                 /* ── Phase 2: Push sent — waiting for user to enter PIN ── */
                 <>
                   <div>
-                    <h1 className="text-xl font-bold text-white">Check Your Phone 📱</h1>
+                    <h1 className="text-xl font-bold text-client-light">Check Your Phone 📱</h1>
                     <p className="text-xs text-client-muted mt-1">Enter your M-Pesa PIN to complete payment</p>
                   </div>
 
                   {/* Status Message */}
                   <div className="bg-client-inner-bg rounded-xl p-4.5 border-l-4 border-client-accent text-xs text-client-text leading-relaxed">
-                    An M-Pesa STK Push has been sent to <strong className="text-white">{mpesaPhone}</strong>. Enter your <strong className="text-white">M-Pesa PIN</strong> on your phone when prompted.
+                    An M-Pesa STK Push has been sent to <strong className="text-client-light">{mpesaPhone}</strong>. Enter your <strong className="text-client-light">M-Pesa PIN</strong> on your phone when prompted.
                   </div>
 
                   {/* Polling Spinner */}
                   <div className="flex flex-col items-center justify-center py-6 space-y-3">
                     <div className="size-10 border-4 border-client-accent border-t-transparent rounded-full animate-spin" />
-                    <div className="text-xs font-bold text-white">Waiting for payment…</div>
+                    <div className="text-xs font-bold text-client-light">Waiting for payment…</div>
                     <div className="text-[10px] text-client-muted">This page will update automatically</div>
                   </div>
 

@@ -4,11 +4,11 @@ import fs from 'fs'
 import path from 'path'
 
 const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST || '127.0.0.1',
+  host: process.env.MYSQL_HOST || '102.210.146.74',
   port: Number(process.env.MYSQL_PORT) || 3306,
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || 'medical_courses',
+  user: process.env.MYSQL_USER || 'gizmojun_payments',
+  password: process.env.MYSQL_PASSWORD || 'RAj8yQPMpGC8ze8kTa7p',
+  database: process.env.MYSQL_DATABASE || 'gizmojun_payments',
   waitForConnections: true,
   connectionLimit: 10,
 })

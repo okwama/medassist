@@ -72,3 +72,32 @@ export async function sendSTKPush(
 
   return res.json()
 }
+
+export async function querySTKStatus(
+  token: string,
+  checkoutRequestId: string
+): Promise<any> {
+  const shortcode = process.env.DARAJA_SHORTCODE!
+  const passkey = process.env.DARAJA_PASSKEY!
+  const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)
+  const password = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64')
+
+  const body = {
+    BusinessShortCode: shortcode,
+    Password: password,
+    Timestamp: timestamp,
+    CheckoutRequestID: checkoutRequestId
+  }
+
+  const res = await fetch(`${BASE_URL}/mpesa/stkpushquery/v1/query`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  })
+
+  // We return the parsed JSON response (even if status is not 200, as the body contains details)
+  return res.json()
+}

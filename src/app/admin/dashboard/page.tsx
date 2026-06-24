@@ -45,6 +45,8 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [stats, setStats] = useState<Stats>({ total: 0, paid: 0, pending: 0, failed: 0, revenue: 0 })
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'success' | 'pending' | 'failed'>('all')
+  const [selectedReceipt, setSelectedReceipt] = useState<Payment | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -75,10 +77,10 @@ export default function AdminDashboard() {
     fetchPayments()
   }, [])
 
-  // Reset page when search term changes
+  // Reset page when search term or status filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [search])
+  }, [search, statusFilter])
 
   const handleLogout = async () => {
     try {
@@ -90,13 +92,18 @@ export default function AdminDashboard() {
     }
   }
 
-  const filteredPayments = payments.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.email.toLowerCase().includes(search.toLowerCase()) ||
-    p.phone.includes(search) ||
-    p.reference.toLowerCase().includes(search.toLowerCase()) ||
-    (p.mpesa_receipt && p.mpesa_receipt.toLowerCase().includes(search.toLowerCase()))
-  )
+  const filteredPayments = payments.filter(p => {
+    const matchesSearch = 
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.email.toLowerCase().includes(search.toLowerCase()) ||
+      p.phone.includes(search) ||
+      p.reference.toLowerCase().includes(search.toLowerCase()) ||
+      (p.mpesa_receipt && p.mpesa_receipt.toLowerCase().includes(search.toLowerCase()))
+
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter
+
+    return matchesSearch && matchesStatus
+  })
 
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage) || 1
   const paginatedPayments = filteredPayments.slice(
@@ -211,6 +218,34 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Filter Tabs */}
+            <div className="flex border-b border-client-border px-4 py-2 gap-2 overflow-x-auto select-none bg-client-card">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === 'all' ? 'bg-client-accent text-client-dark' : 'text-client-muted hover:text-white'}`}
+              >
+                All ({payments.length})
+              </button>
+              <button
+                onClick={() => setStatusFilter('success')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === 'success' ? 'bg-green-950 text-green-400 border border-green-900/30' : 'text-client-muted hover:text-white'}`}
+              >
+                Confirmed ({payments.filter(p => p.status === 'success').length})
+              </button>
+              <button
+                onClick={() => setStatusFilter('pending')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === 'pending' ? 'bg-amber-950 text-amber-400 border border-amber-900/30' : 'text-client-muted hover:text-white'}`}
+              >
+                Pending ({payments.filter(p => p.status === 'pending').length})
+              </button>
+              <button
+                onClick={() => setStatusFilter('failed')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${statusFilter === 'failed' ? 'bg-red-950 text-red-400 border border-red-900/30' : 'text-client-muted hover:text-white'}`}
+              >
+                Failed ({payments.filter(p => p.status === 'failed').length})
+              </button>
+            </div>
+
             {isLoading ? (
               <div className="p-10 flex flex-col items-center justify-center text-client-muted text-xs">
                 <div className="size-6 border-2 border-client-accent border-t-transparent rounded-full animate-spin mb-2"></div>
@@ -233,6 +268,7 @@ export default function AdminDashboard() {
                         <th className="px-5 py-3">Amount</th>
                         <th className="px-5 py-3">Receipt</th>
                         <th className="px-5 py-3">Status</th>
+                        <th className="px-5 py-3 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-client-border">
@@ -280,6 +316,18 @@ export default function AdminDashboard() {
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-950/40 text-red-400 border border-red-900/30">Failed</span>
                             )}
                           </td>
+                          <td className="px-5 py-3 text-right">
+                            {p.status === 'success' ? (
+                              <button
+                                onClick={() => setSelectedReceipt(p)}
+                                className="bg-client-accent hover:bg-client-accent-hover text-client-dark text-[10px] font-bold py-1 px-2.5 rounded transition cursor-pointer"
+                              >
+                                View Receipt
+                              </button>
+                            ) : (
+                              <span className="text-client-muted text-[10px]">—</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -323,6 +371,103 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Receipt Modal */}
+      {selectedReceipt && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-client-card border border-client-border rounded-2xl w-full max-w-[420px] p-6 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-2">
+                <div className="size-8 rounded-lg bg-client-accent flex items-center justify-center text-client-dark font-extrabold text-sm">
+                  MA
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm">MedAssist Academy</h3>
+                  <p className="text-[10px] text-client-muted">Official Payment Receipt</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedReceipt(null)}
+                className="text-client-muted hover:text-white text-sm font-bold p-1 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Receipt Content */}
+            <div className="bg-client-inner-bg rounded-xl p-5 border border-client-border/50 space-y-4 text-xs">
+              <div className="flex justify-between items-center pb-3 border-b border-client-border/50">
+                <span className="text-client-muted">Receipt No:</span>
+                <span className="font-mono font-bold text-client-accent text-sm">{selectedReceipt.mpesa_receipt}</span>
+              </div>
+
+              <div className="space-y-2.5 pt-1">
+                <div className="flex justify-between">
+                  <span className="text-client-muted">Student Name:</span>
+                  <span className="font-semibold text-white">{selectedReceipt.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-client-muted">Email:</span>
+                  <span className="font-semibold text-white truncate max-w-[200px]">{selectedReceipt.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-client-muted">Phone:</span>
+                  <span className="font-semibold text-white">{selectedReceipt.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-client-muted">Location:</span>
+                  <span className="font-semibold text-white">{selectedReceipt.county}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-client-muted">Level:</span>
+                  <span className="font-semibold text-white">{selectedReceipt.study_level}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-client-muted">Ref ID:</span>
+                  <span className="font-mono text-client-muted truncate max-w-[150px]">{selectedReceipt.reference}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-client-muted">Date & Time:</span>
+                  <span className="font-semibold text-white">
+                    {new Date(selectedReceipt.paid_at || selectedReceipt.created_at).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-client-border/50">
+                <span className="font-bold text-white">Amount Paid:</span>
+                <span className="font-extrabold text-client-accent text-base">
+                  KES {selectedReceipt.amount.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Paid Badge Status */}
+            <div className="flex justify-center">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-green-950/60 text-green-400 border border-green-900/40">
+                ● Payment Confirmed
+              </span>
+            </div>
+
+            {/* Print / Close Actions */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => window.print()}
+                className="bg-client-inner-bg hover:bg-client-border text-white text-xs font-bold py-2.5 rounded-lg transition cursor-pointer"
+              >
+                Print Receipt
+              </button>
+              <button
+                onClick={() => setSelectedReceipt(null)}
+                className="bg-client-accent hover:bg-client-accent-hover text-client-dark text-xs font-bold py-2.5 rounded-lg transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
