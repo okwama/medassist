@@ -1,56 +1,244 @@
-# Untitled UI starter kit for Next.js
+# MedAssist Academy — Enrollment & Payment System
 
-This is an official Untitled UI starter kit for Next.js. Kickstart your Untitled UI project with Next.js in seconds.
+A full-stack Next.js web application for managing course enrollments and payments for **MedAssist Academy & Agency**, a Kenyan online training institution for aspiring Medical Virtual Assistants (MVAs).
 
-## Untitled UI React
+Built on the [Untitled UI React](https://www.untitledui.com/react) component library with Next.js 16, Neon PostgreSQL, and M-Pesa (Daraja API) integration.
 
-[Untitled UI React](https://www.untitledui.com/react) is the world’s largest collection of open-source React UI components. Everything you need to design and develop modern, beautiful interfaces—fast.
+---
 
-Built with React 19.1, Tailwind CSS v4.1, TypeScript 5.8, and React Aria, Untitled UI React components deliver modern performance, type safety, and maintainability.
+## Overview
 
-[Learn more](https://www.untitledui.com/react) • [Documentation](https://www.untitledui.com/react/docs/introduction) • [Figma](https://www.untitledui.com/figma) • [FAQs](https://www.untitledui.com/faqs)
+MedAssist Academy offers a **6-week intensive online Medical Virtual Assistant certification course**. This platform handles:
 
-## Getting started
+- A fully branded **public-facing landing page** with course information, testimonials, countdown timer, and FAQ
+- A **guided multi-step checkout wizard** supporting M-Pesa STK Push and card payments
+- A **secure admin panel** for managing enrollments, analytics, and admin users
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16.2 (App Router, Turbopack) |
+| UI Library | Untitled UI React (open-source) |
+| Styling | Tailwind CSS v4.1 + Vanilla CSS (landing page) |
+| Language | TypeScript 5.8 |
+| Database | Neon PostgreSQL (`@neondatabase/serverless`) |
+| Payments | Safaricom Daraja API (M-Pesa STK Push) |
+| Auth | JWT cookies (8h expiry) |
+| Icons | `@untitledui/icons` |
+| Fonts | Inter (Google Fonts) |
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx                  # Public landing page (SPA-style, all sections)
+│   ├── checkout/
+│   │   └── page.tsx              # Multi-step enrollment & payment wizard
+│   ├── success/                  # Post-payment confirmation page
+│   ├── admin/
+│   │   ├── page.tsx              # Admin login
+│   │   ├── dashboard/            # Enrollment dashboard (payments table)
+│   │   ├── analytics/            # Analytics & reports (charts, CSV export)
+│   │   └── users/                # Admin user management
+│   └── api/
+│       ├── initiate/             # M-Pesa STK Push initiation
+│       ├── callback/             # M-Pesa payment callback webhook
+│       ├── status/               # Payment status polling
+│       └── admin/
+│           ├── login/            # Admin authentication (JWT)
+│           ├── logout/           # Session invalidation
+│           ├── payments/         # Enrollment records CRUD
+│           ├── analytics/        # Aggregated stats & chart data
+│           └── users/            # Admin user management CRUD
+├── lib/
+│   ├── db.ts                     # Neon PostgreSQL client & all DB helpers
+│   └── daraja.ts                 # Daraja API (M-Pesa) integration
+├── components/                   # Untitled UI component library
+│   ├── base/                     # Buttons, Inputs, Badges, Avatars, etc.
+│   ├── application/              # Navigation, tables, modals
+│   ├── marketing/                # Header navigation components
+│   └── foundations/              # Design tokens & primitives
+├── providers/
+│   └── theme.tsx                 # Theme provider (forced light mode)
+└── styles/
+    └── theme.css                 # Brand color overrides & global tokens
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-## Resources
+### Public Landing Page (`/`)
+- Sticky navigation with smooth scroll between sections: Home, Program, About Us, FAQ, Contact
+- Hero section with countdown timer to cohort start date (July 6, 2026)
+- Feature stats cards, curriculum overview, instructor bios, testimonials
+- **FAQ accordion** — 16 questions covering prerequisites, schedule, assessments, certification, payments, and support
+- Contact form + social/WhatsApp links
+- Fully responsive (mobile-first)
 
-Untitled UI React is built on top of [Untitled UI Figma](https://www.untitledui.com/figma), the world's largest and most popular Figma UI kit and design system. Explore more:
+### Checkout Wizard (`/checkout`)
+- Step 1: Personal details (name, email, phone, county, referral source)
+- Step 2: Payment plan selection (Full / Installment / Monthly)
+- Step 3: Payment method (M-Pesa STK Push or card)
+- Step 4: Confirmation & receipt
+- Real-time M-Pesa STK push with polling for payment status
 
-**[Untitled UI Figma:](https://www.untitledui.com/react/resources/figma-files)** The world's largest Figma UI kit and design system.
-<br/>
-**[Untitled UI Icons:](https://www.untitledui.com/react/resources/icons)** A clean, consistent, and neutral icon library crafted specifically for modern UI design.
-<br/>
-**[Untitled UI file icons:](https://www.untitledui.com/react/resources/file-icons)** Free file format icons, designed specifically for modern web and UI design.
-<br/>
-**[Untitled UI flag icons:](https://www.untitledui.com/react/resources/flag-icons)** Free country flag icons, designed specifically for modern web and UI design.
-<br/>
-**[Untitled UI avatars:](https://www.untitledui.com/react/resources/avatars)** Free placeholder user avatars and profile pictures to use in your projects.
-<br/>
-**[Untitled UI logos:](https://www.untitledui.com/react/resources/logos)** Free fictional company logos to use in your projects.
+### Admin Panel (`/admin/*`)
+
+> Protected by JWT cookie middleware. Access requires `ADMIN_USERNAME` and `ADMIN_PASSWORD` environment variables.
+
+| Route | Description |
+|---|---|
+| `/admin` | Login page |
+| `/admin/dashboard` | Enrollment records table with search, filter, status badges, CSV export |
+| `/admin/analytics` | KPI cards, CSS bar charts (by day/course/county/referral), CSV export |
+| `/admin/users` | Admin user management — view, add, edit roles, delete |
+
+---
+
+## Database Schema
+
+Tables are auto-created on first use via `initDb()` / `initAdminUsers()` in `src/lib/db.ts`.
+
+### `enrollments`
+| Column | Type | Description |
+|---|---|---|
+| `id` | SERIAL | Primary key |
+| `full_name` | TEXT | Student name |
+| `email` | TEXT | Contact email |
+| `phone` | TEXT | M-Pesa phone number |
+| `county` | TEXT | County of residence |
+| `referral` | TEXT | How they heard about the course |
+| `payment_plan` | TEXT | full / installment / monthly |
+| `amount` | NUMERIC | Amount paid (KES) |
+| `mpesa_code` | TEXT | M-Pesa confirmation code |
+| `payment_status` | TEXT | pending / completed / failed |
+| `created_at` | TIMESTAMP | Enrollment timestamp |
+
+### `admin_users`
+| Column | Type | Description |
+|---|---|---|
+| `id` | SERIAL | Primary key |
+| `username` | TEXT | Unique login username |
+| `password_hash` | TEXT | bcrypt-hashed password |
+| `role` | TEXT | super_admin / admin / viewer |
+| `created_at` | TIMESTAMP | Account creation timestamp |
+
+---
+
+## Environment Variables
+
+Create a `.env.local` file in the project root with the following:
+
+```env
+# Database (Neon PostgreSQL)
+DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
+
+# Admin credentials (legacy env-var login)
+ADMIN_USERNAME=your_admin_username
+ADMIN_PASSWORD=your_secure_password
+
+# JWT secret
+JWT_SECRET=your_jwt_secret_key
+
+# M-Pesa Daraja API
+MPESA_CONSUMER_KEY=your_consumer_key
+MPESA_CONSUMER_SECRET=your_consumer_secret
+MPESA_PASSKEY=your_lipa_na_mpesa_passkey
+MPESA_SHORTCODE=your_business_shortcode
+MPESA_CALLBACK_URL=https://yourdomain.com/api/callback
+
+# App URL (for internal API calls)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm / yarn / pnpm
+- A [Neon](https://neon.tech) PostgreSQL database
+- Safaricom Daraja API credentials (for M-Pesa)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repo-url>
+cd "payment access system/untitled-ui"
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your credentials
+
+# Run the development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+The database tables are created automatically on first request — no migration step required.
+
+---
+
+## API Reference
+
+### Payment APIs
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/initiate` | Initiate M-Pesa STK Push |
+| `POST` | `/api/callback` | M-Pesa payment webhook (called by Safaricom) |
+| `GET` | `/api/status?checkoutRequestId=` | Poll payment status |
+
+### Admin APIs (JWT protected)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/admin/login` | Authenticate and issue JWT cookie |
+| `POST` | `/api/admin/logout` | Clear JWT cookie |
+| `GET` | `/api/admin/payments` | List all enrollments |
+| `PATCH` | `/api/admin/payments` | Update enrollment status |
+| `GET` | `/api/admin/analytics` | Aggregated stats and chart data |
+| `GET` | `/api/admin/users` | List admin users |
+| `POST` | `/api/admin/users` | Create admin user |
+| `PATCH` | `/api/admin/users` | Update admin user role |
+| `DELETE` | `/api/admin/users` | Delete admin user |
+
+---
+
+## Brand Guidelines
+
+| Token | Value |
+|---|---|
+| Primary color | `#00A3A3` (teal) |
+| Primary dark | `#008282` |
+| Primary light | `#e6f6f6` |
+| Background | `#FFFFFF` |
+| Dark text | `#0A0A0A` |
+| Gray text | `#666666` |
+| Mode | Light only (forced) |
+
+---
 
 ## License
 
-Untitled UI React open-source components are licensed under the MIT license, which means you can use them for free in unlimited commercial projects.
+The Untitled UI open-source components used in this project are licensed under the [MIT License](https://www.untitledui.com/license).
 
-> [!NOTE]
-> This license applies only to the starter kit and to the components included in this open-source repository. [Untitled UI React PRO](https://www.untitledui.com/react) includes hundreds more advanced UI components and page examples and is subject to a separate [license agreement](https://www.untitledui.com/license).
+Application-level code (checkout flow, admin panel, API routes, database layer) is proprietary to MedAssist Academy & Agency.
 
-[Untitled UI license agreement →](https://www.untitledui.com/license)
+---
 
-[Frequently asked questions →](https://www.untitledui.com/faqs)
+> **MedAssist Academy & Agency** — Empowering Kenyans to build global healthcare careers from home.  
+> 📧 medassistacademy@gmail.com · 📞 0143869393 · [LinkedIn](https://www.linkedin.com/company/medva-assist-academy/)
