@@ -103,7 +103,7 @@ export const PaymentInput = ({
     type = "text",
     ...props
 }: PaymentInputProps) => {
-    const [cardNumber, setCardNumber] = useControlledState(value, defaultValue || "", (value) => {
+    const [cardNumber, setCardNumber] = useControlledState(value, defaultValue || "", (value: string) => {
         // Remove all non-numeric characters
         value = value.replace(/\D/g, "");
 

@@ -65,7 +65,7 @@ export const FileTrigger = (props: FileTriggerProps) => {
                 onChange={(e) => onSelect?.(e.target.files)}
                 capture={defaultCamera}
                 multiple={allowsMultiple}
-                // @ts-expect-error
+                // @ts-ignore - webkitdirectory is not in React's HTML types
                 webkitdirectory={acceptDirectory ? "" : undefined}
             />
         </>
