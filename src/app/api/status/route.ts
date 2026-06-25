@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPaymentByReference, updatePaymentStatus } from '@/lib/db'
 import { getDarajaToken, querySTKStatus } from '@/lib/daraja'
 
+// In-memory cache to prevent hitting Safaricom's strict Spike Arrest rate limits (5 requests/min)
+const lastQueryCache = new Map<string, number>()
+
 export async function GET(req: NextRequest) {
   try {
     const reference = req.nextUrl.searchParams.get('ref')
@@ -18,7 +21,12 @@ export async function GET(req: NextRequest) {
 
     // Fallback: If status is pending and checkout_request_id exists, poll Safaricom directly 
     // to handle local test environments that cannot receive callbacks, or lost callbacks.
-    if (record.status === 'pending' && record.checkout_request_id) {
+    // Throttle queries to Safaricom to at most once every 15 seconds per reference.
+    const now = Date.now()
+    const lastQueryTime = lastQueryCache.get(reference) || 0
+
+    if (record.status === 'pending' && record.checkout_request_id && (now - lastQueryTime >= 15000)) {
+      lastQueryCache.set(reference, now)
       try {
         const token = await getDarajaToken()
         const queryRes = await querySTKStatus(token, record.checkout_request_id)

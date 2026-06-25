@@ -43,7 +43,14 @@ interface Stats {
   revenue: number
 }
 
-/* ─── Small reusable pieces ──────────────────────────────────────── */
+type StatusFilter = 'all' | 'success' | 'pending' | 'failed'
+
+const STATUS_TABS = [
+  { key: 'all' as StatusFilter,     label: 'All' },
+  { key: 'success' as StatusFilter, label: 'Confirmed' },
+  { key: 'pending' as StatusFilter, label: 'Pending' },
+  { key: 'failed' as StatusFilter,  label: 'Failed' },
+]
 
 function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
   return (
@@ -60,7 +67,6 @@ function StatusBadge({ status }: { status: Payment['status'] }) {
   return <Badge color="error" type="pill-color" size="sm">Failed</Badge>
 }
 
-/* ─── Skeleton loader rows ───────────────────────────────────────── */
 function SkeletonRows() {
   return (
     <>
@@ -86,23 +92,22 @@ function SkeletonRows() {
   )
 }
 
-/* ─── Empty state ────────────────────────────────────────────────── */
 function EmptyState({ filtered }: { filtered: boolean }) {
   return (
     <tr>
       <td colSpan={8}>
         <div className="p-14 flex flex-col items-center justify-center gap-3 text-center">
           <div className="size-12 rounded-xl bg-utility-brand-50 flex items-center justify-center">
-            <Users01 className="size-6 text-[#00A3A3]" />
+            <RefreshCw01 className="size-6 text-[#00A3A3]" />
           </div>
           <div>
             <p className="text-sm font-semibold text-text-primary">
-              {filtered ? 'No matching records' : 'No enrollments yet'}
+              {filtered ? 'No matching records' : 'No transactions yet'}
             </p>
             <p className="text-xs text-text-tertiary mt-1">
               {filtered
                 ? 'Try adjusting your search or filter.'
-                : 'Student enrollment data will appear here once payments come in.'}
+                : 'Transaction history will appear here once payments are initiated.'}
             </p>
           </div>
         </div>
@@ -111,14 +116,14 @@ function EmptyState({ filtered }: { filtered: boolean }) {
   )
 }
 
-/* ─── Main component ─────────────────────────────────────────────── */
-export default function AdminDashboard() {
+export default function AdminTransactions() {
   const router   = useRouter()
   const pathname = usePathname()
 
   const [payments, setPayments]             = useState<Payment[]>([])
   const [stats, setStats]                   = useState<Stats>({ total: 0, paid: 0, pending: 0, failed: 0, revenue: 0 })
   const [search, setSearch]                 = useState('')
+  const [statusFilter, setStatusFilter]     = useState<StatusFilter>('all')
   const [selectedReceipt, setSelectedReceipt] = useState<Payment | null>(null)
   const [isLoading, setIsLoading]           = useState(true)
   const [error, setError]                   = useState('')
@@ -145,7 +150,7 @@ export default function AdminDashboard() {
   }, [router])
 
   useEffect(() => { fetchPayments() }, [fetchPayments])
-  useEffect(() => { setCurrentPage(1) }, [search])
+  useEffect(() => { setCurrentPage(1) }, [search, statusFilter])
 
   const handleLogout = async () => {
     try {
@@ -155,17 +160,18 @@ export default function AdminDashboard() {
     } catch (err) { console.error('Logout failed:', err) }
   }
 
-  const confirmedPayments = payments.filter(p => p.status === 'success')
+  const countByStatus = (s: Payment['status']) => payments.filter(p => p.status === s).length
 
-  const filteredPayments = confirmedPayments.filter(p => {
+  const filteredPayments = payments.filter(p => {
     const q = search.toLowerCase()
-    return (
+    const matchesSearch =
       p.name.toLowerCase().includes(q) ||
       p.email.toLowerCase().includes(q) ||
       p.phone.includes(q) ||
       p.reference.toLowerCase().includes(q) ||
       (p.mpesa_receipt && p.mpesa_receipt.toLowerCase().includes(q))
-    )
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter
+    return matchesSearch && matchesStatus
   })
 
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage) || 1
@@ -227,8 +233,8 @@ export default function AdminDashboard() {
             <span className="font-bold text-text-primary text-sm">MedAssist</span>
           </div>
           <div className="hidden md:block">
-            <h1 className="text-sm font-bold text-text-primary">Student Enrollments</h1>
-            <p className="text-xs text-text-tertiary">Real-time payment & enrollment logs</p>
+            <h1 className="text-sm font-bold text-text-primary">Transaction History</h1>
+            <p className="text-xs text-text-tertiary">Complete billing, pending and failed attempts log</p>
           </div>
           <div className="flex items-center gap-2">
             <Button color="secondary" size="sm" iconLeading={RefreshCw01} disabled={isLoading} onClick={() => fetchPayments()}>
@@ -250,10 +256,10 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* Stat Cards — show skeletons while loading */}
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+          {/* Stat Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {isLoading ? (
-              Array.from({ length: 2 }).map((_, i) => (
+              Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="bg-bg-primary border border-border-secondary rounded-xl p-5 space-y-3 animate-pulse shadow-xs">
                   <div className="h-2.5 w-24 bg-bg-tertiary rounded" />
                   <div className="h-7 w-16 bg-bg-tertiary rounded" />
@@ -261,8 +267,10 @@ export default function AdminDashboard() {
               ))
             ) : (
               <>
-                <StatCard label="Total Enrolled Students"  value={confirmedPayments.length} />
+                <StatCard label="Total Attempts"  value={stats.total} />
                 <StatCard label="Confirmed Revenue"   value={`KES ${(Number(stats.revenue) || 0).toLocaleString()}`} accent />
+                <StatCard label="Pending Prompts"     value={stats.pending} />
+                <StatCard label="Failed Payments"     value={stats.failed} />
               </>
             )}
           </div>
@@ -273,8 +281,8 @@ export default function AdminDashboard() {
             {/* Card header */}
             <div className="px-5 py-4 border-b border-border-secondary flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h2 className="text-sm font-bold text-text-primary">Enrolled Students</h2>
-                <p className="text-xs text-text-tertiary mt-0.5">Search and view confirmed student enrollments</p>
+                <h2 className="text-sm font-bold text-text-primary">All Transactions</h2>
+                <p className="text-xs text-text-tertiary mt-0.5">Filter and review M-Pesa transactions</p>
               </div>
               <div className="w-full sm:w-64">
                 <Input
@@ -283,9 +291,31 @@ export default function AdminDashboard() {
                   icon={SearchMd}
                   value={search}
                   onChange={(v) => setSearch(v)}
-                  aria-label="Search enrollments"
+                  aria-label="Search transactions"
                 />
               </div>
+            </div>
+
+            {/* Filter tabs */}
+            <div className="flex border-b border-border-secondary px-5 gap-1 overflow-x-auto bg-bg-primary">
+              {STATUS_TABS.map(({ key, label }) => {
+                const count = key === 'all' ? payments.length : countByStatus(key as Payment['status'])
+                const isActive = statusFilter === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key)}
+                    className={`flex items-center gap-1.5 px-3 py-3 text-xs font-semibold transition border-b-2 whitespace-nowrap cursor-pointer ${
+                      isActive ? 'border-[#00A3A3] text-[#00A3A3]' : 'border-transparent text-text-tertiary hover:text-text-secondary'
+                    }`}
+                  >
+                    {label}
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${isActive ? 'bg-utility-brand-50 text-[#00A3A3]' : 'bg-bg-tertiary text-text-tertiary'}`}>
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Table */}
@@ -307,7 +337,7 @@ export default function AdminDashboard() {
                   {isLoading ? (
                     <SkeletonRows />
                   ) : paginatedPayments.length === 0 ? (
-                    <EmptyState filtered={search !== ''} />
+                    <EmptyState filtered={search !== '' || statusFilter !== 'all'} />
                   ) : (
                     paginatedPayments.map((p) => (
                       <tr key={p.id} className="hover:bg-bg-secondary/60 transition-colors">
@@ -387,7 +417,7 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      {/* ── Receipt Modal ────────────────────────────────────────── */}
+      {/* Receipt Modal */}
       {selectedReceipt && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-bg-primary border border-border-secondary rounded-2xl w-full max-w-[420px] p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200">

@@ -39,6 +39,7 @@ interface Analytics {
 function AdminSidebar({ pathname, onLogout }: { pathname: string; onLogout: () => void }) {
   const navItems = [
     { label: 'Student Enrollments', href: '/admin/dashboard', icon: Users01 },
+    { label: 'Transaction History', href: '/admin/transactions', icon: RefreshCw01 },
     { label: 'Analytics & Reports',  href: '/admin/analytics',  icon: BarChartSquare02 },
     { label: 'Admin Users',          href: '/admin/users',      icon: Shield01 },
   ]
