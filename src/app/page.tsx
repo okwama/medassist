@@ -22,7 +22,7 @@ export default function LandingPage() {
 
   // Countdown timer logic matching index.html
   useEffect(() => {
-    const targetDate = new Date("July 6, 2026 09:00:00").getTime()
+    const targetDate = new Date("August 15, 2026 09:00:00").getTime()
 
     const updateClock = () => {
       const now = new Date().getTime()

@@ -76,7 +76,7 @@ src/
 
 ### Public Landing Page (`/`)
 - Sticky navigation with smooth scroll between sections: Home, Program, About Us, FAQ, Contact
-- Hero section with countdown timer to cohort start date (July 6, 2026)
+- Hero section with countdown timer to cohort start date (August 15, 2026)
 - Feature stats cards, curriculum overview, instructor bios, testimonials
 - **FAQ accordion** — 16 questions covering prerequisites, schedule, assessments, certification, payments, and support
 - Contact form + social/WhatsApp links
