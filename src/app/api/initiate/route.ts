@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDarajaToken, sendSTKPush } from '@/lib/daraja'
-import { insertPayment, initDb } from '@/lib/db'
+import { getSiteSetting, getSiteSettingNumber, insertPayment, initDb } from '@/lib/db'
 import { StudentForm } from '@/types'
 import { randomUUID } from 'crypto'
 
@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
     await initDb()
 
     const reference = `MED-${Date.now()}-${randomUUID().slice(0, 6).toUpperCase()}`
-    const amount = Number(process.env.COURSE_PRICE) || 8000
-    const course = process.env.COURSE_NAME || 'Medical Course'
+    const amount = await getSiteSettingNumber('course_price', Number(process.env.COURSE_PRICE || 8000))
+    const course = await getSiteSetting('course_name', process.env.COURSE_NAME || 'Medical Course')
 
     // Trigger STK Push via Daraja API
     const token = await getDarajaToken()

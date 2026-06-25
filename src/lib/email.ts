@@ -1,12 +1,20 @@
 import { Resend } from 'resend'
+import { getSiteSetting, initDb } from '@/lib/db'
 import { PaymentRecord } from '@/types'
 
 const resend = new Resend(process.env.RESEND_API_KEY || 'temp')
 
+async function getEmailContext() {
+  await initDb()
+  return {
+    waLink: await getSiteSetting('whatsapp_group_link', process.env.WHATSAPP_GROUP_LINK || 'https://chat.whatsapp.com/mock'),
+    courseName: await getSiteSetting('course_name', process.env.COURSE_NAME || 'Medical Course'),
+    startDate: await getSiteSetting('course_start_date', process.env.COURSE_START_DATE || '15 August 2026'),
+  }
+}
+
 export async function sendStudentEmail(record: PaymentRecord) {
-  const waLink = process.env.WHATSAPP_GROUP_LINK!
-  const courseName = process.env.COURSE_NAME!
-  const startDate = process.env.COURSE_START_DATE!
+  const { waLink, courseName, startDate } = await getEmailContext()
 
   await resend.emails.send({
     from: process.env.EMAIL_FROM || 'courses@yourclient.co.ke',
@@ -43,7 +51,7 @@ export async function sendStudentEmail(record: PaymentRecord) {
 }
 
 export async function sendClientNotification(record: PaymentRecord) {
-  const courseName = process.env.COURSE_NAME!
+  const { courseName } = await getEmailContext()
   await resend.emails.send({
     from: process.env.EMAIL_FROM || 'courses@yourclient.co.ke',
     to: process.env.CLIENT_NOTIFY_EMAIL || 'admin@yourclient.co.ke',

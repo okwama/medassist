@@ -3,8 +3,6 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 
-const COURSE_START_DATE = '15 August 2026'
-
 function SuccessContent() {
   const searchParams = useSearchParams()
   const ref = searchParams.get('ref')
@@ -18,6 +16,25 @@ function SuccessContent() {
   } | null>(null)
   
   const [isLoading, setIsLoading] = useState(true)
+  const [courseStartDate, setCourseStartDate] = useState('15 August 2026')
+  const [whatsappGroupLink, setWhatsappGroupLink] = useState('https://chat.whatsapp.com/mock')
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/public/settings')
+        if (res.ok) {
+          const data = await res.json()
+          setCourseStartDate(data.courseStartDate || '15 August 2026')
+          setWhatsappGroupLink(data.whatsappGroupLink || 'https://chat.whatsapp.com/mock')
+        }
+      } catch (err) {
+        console.error('Failed to load public settings', err)
+      }
+    }
+
+    loadSettings()
+  }, [])
 
   useEffect(() => {
     if (!ref) return
@@ -33,8 +50,6 @@ function SuccessContent() {
         setIsLoading(false)
       })
   }, [ref])
-
-  const whatsappGroupLink = process.env.NEXT_PUBLIC_WHATSAPP_GROUP_LINK || 'https://chat.whatsapp.com/mock'
 
   if (isLoading) {
     return (
@@ -102,7 +117,7 @@ function SuccessContent() {
           </div>
           <div className="flex justify-between items-center border-t border-client-border pt-3">
             <span>Start Date</span>
-            <span className="font-semibold text-client-accent">{COURSE_START_DATE}</span>
+            <span className="font-semibold text-client-accent">{courseStartDate}</span>
           </div>
           <div className="flex justify-between items-center border-t border-client-border pt-3">
             <span>Receipt sent to</span>

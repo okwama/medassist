@@ -393,9 +393,9 @@ export default function LandingPage() {
 
             <section className="bg-[#00A3A3] text-white py-16 px-6 text-center">
               <div className="max-w-[800px] mx-auto space-y-4">
-                <h2 className="text-3xl font-bold">Ready to Transition into a Healthcare Remote Job?</h2>
-                <p className="text-gray-100 max-w-[600px] mx-auto">
-                  Gain high-demand medical technical skills and access directly to our operational agency ecosystem matching talent with global clients.
+                <h2 className="text-3xl font-bold">Build Practical Medical VA Skills with Real Training</h2>
+                <p className="text-gray-100 max-w-[680px] mx-auto">
+                  This is a training-first programme designed to equip you with practical skills, hands-on practice, and a strong portfolio foundation. We do not offer agency placement or guaranteed job placement.
                 </p>
                 <button
                   onClick={(e) => navigateTo(e, "program")}
@@ -426,8 +426,8 @@ export default function LandingPage() {
                     <div className="flex gap-4 p-6 bg-gray-50 rounded-xl hover:bg-[#e6f6f6] transition">
                       <i className="fa-solid fa-briefcase text-3xl text-[#00A3A3]"></i>
                       <div>
-                        <h3 className="font-bold text-lg mb-1">Agency Placement</h3>
-                        <p className="text-gray-600 text-sm">Top performing graduates receive direct matching and fast-tracked deployment workflows onto partner client rosters.</p>
+                        <h3 className="font-bold text-lg mb-1">Training-Centered Support</h3>
+                        <p className="text-gray-600 text-sm">You will receive guided training, practical assignments, and a portfolio foundation to help you grow your skills with confidence.</p>
                       </div>
                     </div>
                     <div className="flex gap-4 p-6 bg-gray-50 rounded-xl hover:bg-[#e6f6f6] transition">
@@ -599,7 +599,7 @@ export default function LandingPage() {
                 {([
                   {
                     q: "What is this programme about?",
-                    a: "This is a 6-week live online training programme designed to equip you with real, job-ready skills to work as a Medical Virtual Assistant (MVA) for US-based healthcare providers from anywhere in the world."
+                    a: "This is a 6-week live online training programme designed to equip you with practical medical VA skills, hands-on learning, and a strong portfolio foundation. It is a training-first programme and does not include agency placement."
                   },
                   {
                     q: "Who is this course for?",
@@ -663,7 +663,7 @@ export default function LandingPage() {
                   },
                   {
                     q: "Does completing this course guarantee me a job?",
-                    a: "While we do not guarantee employment, our programme is specifically designed to make you job-ready. You will graduate with a certificate, a real portfolio, and the practical skills that clients on platforms like Upwork actively look for in a Medical VA."
+                    a: "No. This programme does not offer agency placement or guaranteed job placement. It is designed to help you build strong practical skills, complete real assignments, and leave with a portfolio you can use in your own job search."
                   },
                   {
                     q: "I have more questions how do I reach you?",

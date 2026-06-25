@@ -116,6 +116,222 @@ function EmptyState({ filtered }: { filtered: boolean }) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Receipt printer — opens a fresh window with standalone receipt HTML
+// ---------------------------------------------------------------------------
+function printReceipt(p: Payment) {
+  const paid = new Date(p.paid_at || p.created_at)
+  const dateStr = paid.toLocaleDateString('en-KE', { day: '2-digit', month: 'long', year: 'numeric' })
+  const timeStr = paid.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })
+
+  const rows = [
+    ['Programme',    'Medical Virtual Assistant Training'],
+    ['Cohort',       'Cohort 1 — 2026'],
+    ['Student Name', p.name],
+    ['Email Address',p.email],
+    ['Phone Number', p.phone],
+    ['County',       p.county],
+    ['Study Level',  p.study_level],
+    ['Ref ID',       p.reference],
+    ['M-Pesa No.',   p.phone],
+    ['Date',         dateStr],
+    ['Time',         timeStr],
+  ]
+
+  const rowsHtml = rows.map(([label, value]) => `
+    <tr>
+      <td class="label">${label}</td>
+      <td class="value">${value ?? '—'}</td>
+    </tr>`).join('')
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Receipt — ${p.mpesa_receipt ?? p.reference}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f3f6f8;
+      color: #111827;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .receipt-card {
+      max-width: 820px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 28px 32px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      padding-bottom: 18px;
+      border-bottom: 2px solid #00A3A3;
+      margin-bottom: 20px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: #e6f7f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      color: #00A3A3;
+    }
+    .brand-name { font-size: 18px; font-weight: 800; color: #00A3A3; }
+    .brand-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+    .receipt-meta { text-align: right; }
+    .receipt-label { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: .8px; }
+    .receipt-no { font-size: 20px; font-weight: 800; color: #00A3A3; font-family: Consolas, monospace; letter-spacing: 1px; margin-top: 4px; }
+    .status-banner {
+      background: #e6f7f7;
+      border: 1px solid #b2e8e8;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .status-dot { width: 10px; height: 10px; border-radius: 999px; background: #00A3A3; flex-shrink: 0; }
+    .status-text { font-weight: 700; color: #008282; font-size: 13px; }
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 10px;
+    }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 22px; }
+    tr { border-bottom: 1px solid #f3f4f6; }
+    tr:last-child { border-bottom: none; }
+    td { padding: 10px 0; vertical-align: top; }
+    td.label { width: 38%; color: #6b7280; font-size: 12px; }
+    td.value { color: #111827; font-weight: 600; font-size: 12px; text-align: right; }
+    .amount-row {
+      background: linear-gradient(135deg, #f7fffe 0%, #eefbf8 100%);
+      border: 1.5px solid #00A3A3;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .amount-label { font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: .8px; }
+    .amount-value { font-size: 24px; font-weight: 800; color: #00A3A3; font-family: Consolas, monospace; }
+    .footer {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+    .footer-left { line-height: 1.7; }
+    .footer-right { text-align: right; line-height: 1.7; }
+    .footer-note {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 11px;
+      color: #9ca3af;
+      font-style: italic;
+    }
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .receipt-card {
+        max-width: none;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+      }
+      @page { size: A4; margin: 10mm; }
+      .receipt-card { break-inside: avoid; }
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt-card">
+    <div class="header">
+      <div class="brand-logo">
+        <div class="brand-icon">M</div>
+        <div>
+          <div class="brand-name">MedAssist Academy</div>
+          <div class="brand-sub">Academy &amp; Agency · Cohort 1</div>
+        </div>
+      </div>
+      <div class="receipt-meta">
+        <div class="receipt-label">M-Pesa Receipt No.</div>
+        <div class="receipt-no">${p.mpesa_receipt ?? '—'}</div>
+      </div>
+    </div>
+
+    <div class="status-banner">
+      <div class="status-dot"></div>
+      <span class="status-text">✓ Payment Confirmed — Official Receipt</span>
+    </div>
+
+    <div class="section-title">Enrolment Details</div>
+    <table>${rowsHtml}</table>
+
+    <div class="amount-row">
+      <span class="amount-label">Total Amount Paid</span>
+      <span class="amount-value">KES ${Number(p.amount).toLocaleString()}</span>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">
+        MedAssist Academy &amp; Agency<br/>
+        admin@medassistacademy.co.ke<br/>
+        Generated: ${new Date().toLocaleString('en-KE')}
+      </div>
+      <div class="footer-right">
+        Ref: ${p.reference}<br/>
+        This is an official receipt
+      </div>
+    </div>
+    <div class="footer-note">Thank you for enrolling. Keep this receipt for your records.</div>
+  </div>
+
+  <script>window.onload = () => { window.print(); }</script>
+</body>
+</html>`
+
+  const win = window.open('', '_blank', 'width=800,height=960')
+  if (win) {
+    win.document.write(html)
+    win.document.close()
+  }
+}
+
 export default function AdminTransactions() {
   const router   = useRouter()
   const pathname = usePathname()
@@ -468,8 +684,8 @@ export default function AdminTransactions() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button color="secondary" size="md" iconLeading={Printer} onClick={() => window.print()}>
-                Print
+              <Button color="secondary" size="md" iconLeading={Printer} onClick={() => printReceipt(selectedReceipt)}>
+                Print / PDF
               </Button>
               <Button color="primary" size="md" onClick={() => setSelectedReceipt(null)}>
                 Close

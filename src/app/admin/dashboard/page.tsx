@@ -12,6 +12,7 @@ import {
   X,
   BarChartSquare02,
   Shield01,
+  Settings01,
 } from '@untitledui/icons'
 import { Button } from '@/components/base/buttons/button'
 import { Input } from '@/components/base/input/input'
@@ -179,6 +180,7 @@ export default function AdminDashboard() {
     { label: 'Transaction History', href: '/admin/transactions', icon: RefreshCw01 },
     { label: 'Analytics & Reports',  href: '/admin/analytics',  icon: BarChartSquare02 },
     { label: 'Admin Users',          href: '/admin/users',      icon: Shield01 },
+    { label: 'Site Settings',        href: '/admin/settings',   icon: Settings01 },
   ]
 
   return (

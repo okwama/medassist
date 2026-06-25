@@ -20,15 +20,14 @@ const referralOptions = [
   { id: 'Other', label: 'Other' },
 ]
 
-// Course constants matching client screenshot data
-const COURSE_NAME = process.env.NEXT_PUBLIC_COURSE_NAME || 'MedAssist Academy'
-const COURSE_DURATION = '6 Weeks · Sat & Sun'
-const COURSE_START_DATE = '15 August 2026'
-const COURSE_PRICE = 1
-
 export default function CheckoutPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
+  const [courseName, setCourseName] = useState('Medical Course')
+  const [courseDuration, setCourseDuration] = useState('6 Weeks · Sat & Sun')
+  const [courseStartDate, setCourseStartDate] = useState('15 August 2026')
+  const [coursePrice, setCoursePrice] = useState(8000)
+  const [lightweightMode, setLightweightMode] = useState(false)
   
   // Step 1 Form Data
   const [name, setName] = useState('')
@@ -53,6 +52,26 @@ export default function CheckoutPage() {
       setMpesaPhone(phone)
     }
   }, [phone])
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/public/settings')
+        if (!res.ok) return
+
+        const data = await res.json()
+        setCourseName(data.courseName || 'Medical Course')
+        setCourseDuration(data.courseDuration || '6 Weeks · Sat & Sun')
+        setCourseStartDate(data.courseStartDate || '15 August 2026')
+        setCoursePrice(Number(data.coursePrice || 8000))
+        setLightweightMode(Boolean(data.lightweightMode))
+      } catch (err) {
+        console.error('Failed to load public settings', err)
+      }
+    }
+
+    loadSettings()
+  }, [])
 
   // Form Validations
   const validateStep1 = () => {
@@ -351,15 +370,15 @@ export default function CheckoutPage() {
               <div className="bg-client-inner-bg rounded-xl p-4.5 space-y-3.5 text-xs text-client-text">
                 <div className="flex justify-between items-center">
                   <span>Programme</span>
-                  <span className="font-semibold text-client-light">{COURSE_NAME}</span>
+                  <span className="font-semibold text-client-light">{courseName}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Duration</span>
-                  <span className="font-semibold text-client-light">{COURSE_DURATION}</span>
+                  <span className="font-semibold text-client-light">{courseDuration}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Start Date</span>
-                  <span className="font-semibold text-client-light">{COURSE_START_DATE}</span>
+                  <span className="font-semibold text-client-light">{courseStartDate}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span>Name</span>
@@ -367,11 +386,17 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between items-center pt-2.5 border-t border-client-border">
                   <span className="font-bold text-client-text">Total</span>
-                  <span className="font-bold text-client-accent text-sm">KES {COURSE_PRICE.toLocaleString()}</span>
+                  <span className="font-bold text-client-accent text-sm">KES {coursePrice.toLocaleString()}</span>
                 </div>
               </div>
 
               {/* STK Push Info Box */}
+              {lightweightMode ? (
+                <div className="rounded-xl border border-[#00A3A3]/20 bg-[#e6f6f6] p-3 text-[11px] text-client-light">
+                  This is a training-first programme. We do not offer agency placement or guaranteed job placement.
+                </div>
+              ) : null}
+
               <div className="bg-client-inner-bg rounded-xl p-4.5 flex items-center gap-3.5">
                 <img src="/mpesa.png" alt="M-Pesa" className="size-10 object-contain rounded-lg flex-shrink-0" />
                 <div>
@@ -399,7 +424,7 @@ export default function CheckoutPage() {
                   disabled={isSubmitting}
                   className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active disabled:opacity-50 transition flex items-center justify-center gap-1.5 text-sm"
                 >
-                  {isSubmitting ? 'Sending Request...' : `Pay KES ${COURSE_PRICE.toLocaleString()} via M-Pesa →`}
+                  {isSubmitting ? 'Sending Request...' : `Pay KES ${coursePrice.toLocaleString()} via M-Pesa →`}
                 </button>
 
                 <button

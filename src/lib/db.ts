@@ -37,7 +37,55 @@ export async function initDb() {
   await sql`CREATE INDEX IF NOT EXISTS idx_email     ON payments (email)`
   await sql`CREATE INDEX IF NOT EXISTS idx_checkout  ON payments (checkout_request_id)`
 
+  await initSiteSettings()
+
   console.log('Neon PostgreSQL database initialized successfully')
+}
+
+export async function initSiteSettings() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS site_settings (
+      id            SERIAL PRIMARY KEY,
+      setting_key   VARCHAR(100) NOT NULL UNIQUE,
+      setting_value TEXT         NOT NULL,
+      updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    )
+  `
+
+  await sql`CREATE INDEX IF NOT EXISTS idx_site_settings_key ON site_settings (setting_key)`
+}
+
+export async function getAllSiteSettings(): Promise<Record<string, string>> {
+  const rows = await sql`SELECT setting_key, setting_value FROM site_settings`
+  return Object.fromEntries((rows as Array<{ setting_key: string; setting_value: string }>).map((row) => [row.setting_key, row.setting_value]))
+}
+
+export async function getSiteSetting(key: string, fallback?: string): Promise<string> {
+  const rows = await sql`SELECT setting_value FROM site_settings WHERE setting_key = ${key} LIMIT 1`
+  const value = (rows[0] as { setting_value?: string } | undefined)?.setting_value
+  return value ?? fallback ?? ''
+}
+
+export async function getSiteSettingNumber(key: string, fallback: number): Promise<number> {
+  const value = await getSiteSetting(key)
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+export async function getSiteSettingBoolean(key: string, fallback: boolean): Promise<boolean> {
+  const value = await getSiteSetting(key)
+  if (!value) return fallback
+  return ['true', '1', 'yes', 'on'].includes(value.toLowerCase())
+}
+
+export async function setSiteSetting(key: string, value: string) {
+  await sql`
+    INSERT INTO site_settings (setting_key, setting_value, updated_at)
+    VALUES (${key}, ${value}, NOW())
+    ON CONFLICT (setting_key) DO UPDATE
+    SET setting_value = EXCLUDED.setting_value,
+        updated_at = NOW()
+  `
 }
 
 // ---------------------------------------------------------------------------
