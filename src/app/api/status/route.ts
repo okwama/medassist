@@ -5,6 +5,15 @@ import { getDarajaToken, querySTKStatus } from '@/lib/daraja'
 // In-memory cache to prevent hitting Safaricom's strict Spike Arrest rate limits (5 requests/min)
 const lastQueryCache = new Map<string, number>()
 
+// Track when each reference was first created (first seen by status endpoint)
+// We use this to enforce a grace period before querying Safaricom directly,
+// giving the user enough time to receive the STK prompt and enter their PIN.
+const firstSeenCache = new Map<string, number>()
+
+// Grace period: do NOT query Safaricom directly for at least this many ms
+// after the STK push was initiated. The user needs time to enter their PIN.
+const GRACE_PERIOD_MS = 35_000 // 35 seconds
+
 export async function GET(req: NextRequest) {
   try {
     const reference = req.nextUrl.searchParams.get('ref')
@@ -25,7 +34,16 @@ export async function GET(req: NextRequest) {
     const now = Date.now()
     const lastQueryTime = lastQueryCache.get(reference) || 0
 
-    if (record.status === 'pending' && record.checkout_request_id && (now - lastQueryTime >= 15000)) {
+    // Record when we first saw this reference so we can enforce the grace period
+    if (!firstSeenCache.has(reference)) {
+      firstSeenCache.set(reference, now)
+    }
+    const firstSeen = firstSeenCache.get(reference)!
+    const ageMs = now - firstSeen
+
+    // Only start querying Safaricom directly after the grace period has elapsed
+    // AND at most once every 15 seconds (Spike Arrest limit)
+    if (record.status === 'pending' && record.checkout_request_id && ageMs >= GRACE_PERIOD_MS && (now - lastQueryTime >= 15000)) {
       lastQueryCache.set(reference, now)
       try {
         const token = await getDarajaToken()
@@ -44,12 +62,19 @@ export async function GET(req: NextRequest) {
             await updatePaymentStatus(reference, 'success', receipt)
             record.status = 'success'
             record.mpesa_receipt = receipt
-          } else if (resultCode === '4999' || resultCode === 4999) {
-            // "4999" means the transaction is still under processing/pending.
-            // Do not update status, let the client keep polling.
+          } else if (
+            // These codes mean the transaction is still being processed or not yet acted on.
+            // Do NOT mark as failed — keep polling.
+            resultCode === '4999' || resultCode === 4999 || // Still processing
+            resultCode === '1037' || resultCode === 1037 || // No response yet (user hasn't acted)
+            resultCode === '1032' || resultCode === 1032 || // Request cancelled by user (transient in sandbox)
+            resultCode === '2001' || resultCode === 2001    // Wrong PIN entered but prompt still open
+          ) {
             record.status = 'pending'
           } else {
-            // Any other non-zero ResultCode indicates a finalized transaction failure (e.g. cancelled, timed out, insufficient funds)
+            // Any other non-zero ResultCode is a definitive failure
+            // (e.g. insufficient funds=1, wrong PIN limit exceeded, etc.)
+            console.log(`[status] Marking ${reference} as failed — ResultCode: ${resultCode}`)
             await updatePaymentStatus(reference, 'failed')
             record.status = 'failed'
           }

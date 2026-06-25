@@ -126,10 +126,9 @@ export default function CheckoutPage() {
     }
   }
 
-  // Polling logic
   const startPolling = (ref: string) => {
     let attempts = 0
-    const maxAttempts = 40 // ~2 minutes
+    const maxAttempts = 36 // 36 × 5s = 3 minutes total
     
     const interval = setInterval(async () => {
       attempts++
@@ -160,7 +159,7 @@ export default function CheckoutPage() {
         setStep(2)
         setError('Transaction timed out. If you already entered your PIN, please check your email for confirmation shortly or contact support.')
       }
-    }, 3000)
+    }, 5000) // poll every 5 seconds
   }
 
   return (
@@ -442,7 +441,7 @@ export default function CheckoutPage() {
                   <div className="flex flex-col items-center justify-center py-6 space-y-3">
                     <div className="size-10 border-4 border-client-accent border-t-transparent rounded-full animate-spin" />
                     <div className="text-xs font-bold text-client-light">Waiting for payment…</div>
-                    <div className="text-[10px] text-client-muted">This page will update automatically</div>
+                    <div className="text-[10px] text-client-muted">Take your time — this page will update automatically once payment is confirmed</div>
                   </div>
 
                   {/* Actions */}

@@ -46,7 +46,7 @@ function SuccessContent() {
   }
 
   const studentName = record?.name || 'Student'
-  const displayAmount = record?.amount ? `KES ${record.amount.toLocaleString()}` : 'KES 8,000'
+  const displayAmount = record?.amount ? `KES ${Number(record.amount).toLocaleString()}` : '—'
   const receiptEmail = record?.email || 'your email'
 
   return (
@@ -86,7 +86,7 @@ function SuccessContent() {
 
         {/* Welcome Header */}
         <div className="space-y-2">
-          <h1 className="text-xl font-bold text-black">Payment Confirmed!</h1>
+          <h1 className="text-xl font-bold text-client-text">Payment Confirmed!</h1>
           <div className="text-xs text-client-text space-y-1">
             <p>Welcome to MedAssist Academy, <strong className="text-client-accent">{studentName}</strong>!</p>
             <p>Your spot in Cohort 1 is secured.</p>
