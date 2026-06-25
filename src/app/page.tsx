@@ -20,7 +20,7 @@ export default function LandingPage() {
     router.push("/checkout")
   }
 
-  // Countdown timer logic matching index.html
+  // Countdown timer logic matching the August 15 cohort start
   useEffect(() => {
     const targetDate = new Date("August 15, 2026 09:00:00").getTime()
 
@@ -341,7 +341,7 @@ export default function LandingPage() {
                 <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-[#00A3A3] text-center">
                   <i className="fa-solid fa-calendar-days text-3xl text-[#00A3A3] mb-3"></i>
                   <h3 className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-1">Start Date</h3>
-                  <p className="text-lg font-bold text-gray-800">July 06, 2026</p>
+                  <p className="text-lg font-bold text-gray-800">August 15, 2026</p>
                 </div>
                 <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-[#00A3A3] text-center">
                   <i className="fa-solid fa-clock text-3xl text-[#00A3A3] mb-3"></i>
