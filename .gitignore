@@ -9,7 +9,8 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
+/next.zip
+/next
 # testing
 /coverage
 
