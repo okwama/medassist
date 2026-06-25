@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -309,11 +310,17 @@ export default function LandingPage() {
         <main className="flex-grow">
           {/* 1. HOME SECTION */}
           <article id="home" className={`page-section ${activeSection === "home" ? "active-page" : ""}`}>
+            {/* Preload the hero background so it starts fetching immediately */}
+            <link
+              rel="preload"
+              as="image"
+              href="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1280&q=75"
+            />
             <section
               className="relative text-white py-32 px-6 text-center bg-cover bg-center"
               style={{
                 backgroundImage:
-                  "linear-gradient(135deg, rgba(10,10,10,0.85) 0%, rgba(0,163,163,0.4) 100%), url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1920&q=80')",
+                  "linear-gradient(135deg, rgba(10,10,10,0.85) 0%, rgba(0,163,163,0.4) 100%), url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1280&q=75')",
               }}
             >
               <div className="max-w-[800px] mx-auto space-y-6">
@@ -486,11 +493,16 @@ export default function LandingPage() {
                 <div className="bg-gray-50 p-8 rounded-2xl text-center">
                   <h3 className="text-xl font-bold mb-1">Professional Graduation Credential</h3>
                   <p className="text-gray-500 text-sm mb-6">Tangible validation of your skills to display to prospective healthcare organizations internationally.</p>
-                  <img
-                    src="https://images.unsplash.com/photo-1589330694653-ded6df03f754?auto=format&fit=crop&w=800&q=80"
-                    alt="Certificate Preview"
-                    className="mx-auto rounded-lg border-8 border-white shadow-md max-w-full w-[600px] h-auto"
-                  />
+                  <div className="mx-auto relative w-full max-w-[600px]" style={{ aspectRatio: "4/3" }}>
+                    <Image
+                      src="https://images.unsplash.com/photo-1589330694653-ded6df03f754?auto=format&fit=crop&w=800&q=80"
+                      alt="Certificate Preview"
+                      fill
+                      className="rounded-lg border-8 border-white shadow-md object-cover"
+                      sizes="(max-width: 768px) 100vw, 600px"
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
               </div>
             </section>
@@ -525,11 +537,14 @@ export default function LandingPage() {
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[800px] mx-auto">
                     <div className="bg-white shadow-md rounded-xl overflow-hidden hover:-translate-y-1 transition text-center">
-                      <div className="h-[250px] bg-gray-200 overflow-hidden">
-                        <img
+                      <div className="h-[250px] bg-gray-200 overflow-hidden relative">
+                        <Image
                           src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&h=300&q=80"
                           alt="Dr. Catherine Mwangi"
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 400px"
+                          loading="lazy"
                         />
                       </div>
                       <div className="p-6">
@@ -544,11 +559,14 @@ export default function LandingPage() {
                     </div>
 
                     <div className="bg-white shadow-md rounded-xl overflow-hidden hover:-translate-y-1 transition text-center">
-                      <div className="h-[250px] bg-gray-200 overflow-hidden">
-                        <img
+                      <div className="h-[250px] bg-gray-200 overflow-hidden relative">
+                        <Image
                           src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&h=300&q=80"
                           alt="Michael Chen"
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 100vw, 400px"
+                          loading="lazy"
                         />
                       </div>
                       <div className="p-6">
@@ -580,68 +598,76 @@ export default function LandingPage() {
               <div className="space-y-3">
                 {([
                   {
-                    q: "Who is this course for?",
-                    a: "This course is designed for individuals who are passionate about supporting the healthcare sector remotely. It is ideal for fresh graduates, career changers, and professionals seeking to expand their skill set into the growing field of Medical Virtual Assistance."
+                    q: "What is this programme about?",
+                    a: "This is a 6-week live online training programme designed to equip you with real, job-ready skills to work as a Medical Virtual Assistant (MVA) for US-based healthcare providers from anywhere in the world."
                   },
                   {
-                    q: "Do I need any prior experience or qualifications?",
-                    a: "No prior medical or technical background is required. If you have basic computer literacy and a reliable internet connection, you have everything you need to get started. Our curriculum is designed to take you from foundational knowledge to job-ready skills."
+                    q: "Who is this course for?",
+                    a: "This course is open to anyone interested in breaking into the healthcare virtual assistance space, including medical and nursing students, recent graduates, working professionals looking to pivot into remote healthcare work, and anyone ready to build a marketable skill set in the medical industry."
+                  },
+                  {
+                    q: "Do I need a medical background to enrol?",
+                    a: "No. A medical background is helpful but not required. What matters most is your willingness to learn, show up consistently, and commit to the 6 weeks. The programme is structured to take you from foundational knowledge to job-ready skills."
                   },
                   {
                     q: "How long is the course?",
-                    a: "The course runs for 6 weeks, structured as an intensive program to get you certified and career-ready as quickly as possible."
+                    a: "The course runs for 6 weeks, from 15 August 2026 to 20 September 2026, with a closing ceremony on 27 September 2026."
                   },
                   {
                     q: "When are the classes held?",
-                    a: "Live sessions are held weekly via Zoom. The exact schedule is confirmed upon enrollment and communicated through your welcome email and the course WhatsApp group. The cohort begins on July 6, 2026."
+                    a: "Classes are held every Saturday and Sunday from 7:00 PM to 8:00 PM (EAT)."
                   },
                   {
-                    q: "Which platform will be used for classes?",
-                    a: "All live classes are conducted via Zoom. Recorded sessions, course materials, and resources are shared through our digital learning platform and the course WhatsApp group so you can review at your own pace."
+                    q: "Which platform will be used?",
+                    a: "All sessions are conducted live online via Zoom. You will receive your Zoom link and joining instructions upon registration and payment."
                   },
                   {
                     q: "What topics will be covered?",
-                    a: "The course curriculum includes: Introduction to Medical Virtual Assistance, HIPAA Compliance & Medical Ethics, Medical Scheduling & Appointment Management, Patient Records & EHR Systems, Insurance Verification & Prior Authorizations, Telehealth Coordination & Remote Patient Support, Medical Billing Basics, Professional Client Communication, US Healthcare System Overview, and Practical hands-on simulations throughout."
+                    a: "The 6-week curriculum covers:\n\n• Week 1: Orientation & Clinical Documentation Overview · SOAP, DAP, Referral & Discharge Notes\n• Week 2: EMR/EHR Systems · Patient Scheduling & Communication\n• Week 3: Insurance Verification (VOB) · Eligibility Checks & DrChrono Workflow\n• Week 4: Medical Scribing · Assessment, Plan & Documentation · Remote Patient Monitoring (RPM)\n• Week 5: Prior Authorizations with CoverMyMeds · Claims Submission & DrChrono Billing\n• Week 6: AR & Denial Management · Capstone Review & Portfolio Building"
                   },
                   {
-                    q: "Are there assessments during the course?",
-                    a: "Yes. Participants will complete Continuous Assessment Tests (CATs) during the course to evaluate their learning progress and ensure readiness for real-world practice."
+                    q: "What will I walk away with?",
+                    a: "Upon successful completion you will receive a certificate of completion and a professional portfolio of real work samples that you can immediately use when applying for Medical VA roles on platforms like Upwork and other freelancing or job platforms."
                   },
                   {
-                    q: "When will the assessments take place?",
-                    a: "CAT I is scheduled for Week 3 (approximately July 27, 2026) and the Final Assessment takes place in Week 6 (approximately August 17, 2026). Exact dates are confirmed at the start of the cohort."
+                    q: "How much does the course cost?",
+                    a: "The course fee is KES 8,000 for the full 6-week programme. Payment plans are available; reach out to us before registering to discuss options."
                   },
                   {
-                    q: "Will I receive a certificate after completing the course?",
-                    a: "Yes. Participants who meet the certification requirements will receive a MedAssist Academy Certificate of Completion, which is recognized by our partner healthcare agencies and can be showcased on your LinkedIn profile and CV."
+                    q: "How do I register and pay?",
+                    a: "Registration is done online. You will fill in your details and pay via M-Pesa. Upon successful payment, you will receive access to our official Cohort 1 WhatsApp group where all communication, resources, and Zoom links will be shared."
                   },
                   {
-                    q: "What are the requirements for certification?",
-                    a: "To qualify for certification, participants must: (1) Attend at least 60% of the live sessions, and (2) Achieve an average score of 60% or higher across the CAT assessments."
+                    q: "Are there assessments?",
+                    a: "Yes. You will complete assignments during the course to reinforce your learning and build your portfolio. Assignments are reviewed and feedback is provided. Assignments are what build the work samples and portfolio."
+                  },
+                  {
+                    q: "What are the requirements to receive a certificate?",
+                    a: "To qualify for a certificate of completion, you must: (1) Attend a minimum of 80% of all sessions, and (2) Complete and submit all required assignments."
                   },
                   {
                     q: "What happens if I miss a class?",
-                    a: "Recorded sessions are made available after each live class so you can catch up. However, you must maintain at least 60% attendance (based on live participation) to qualify for your certificate."
+                    a: "You may continue with the course, there will be recordings for the same. We encourage all participants to prioritize attendance as sessions are live and interactive."
                   },
                   {
                     q: "Is the course interactive?",
-                    a: "Absolutely. Sessions include live demonstrations, guided practical exercises, role-play scenarios, Q&A segments, and peer discussions. You'll also get direct access to instructors for feedback and mentorship throughout the program."
-                  },
-                  {
-                    q: "How will I receive the Zoom link and course materials?",
-                    a: "Upon successful enrollment and payment confirmation, you will receive a welcome email containing the Zoom link, joining instructions, and access details for all course resources. You'll also be added to the course WhatsApp group."
-                  },
-                  {
-                    q: "Can I join the classes using my phone?",
-                    a: "Yes. You can join Zoom sessions using a smartphone, tablet, laptop, or desktop computer. All you need is a stable internet connection. We recommend using a device with a camera for the best interactive experience."
+                    a: "Absolutely. Sessions include live demonstrations, guided practical exercises, real case studies, class discussions, and direct interaction with instructors. This is not a passive, watch-and-listen course; you will be actively working."
                   },
                   {
                     q: "Will there be a WhatsApp group?",
-                    a: "Yes. All enrolled participants are added to a dedicated WhatsApp group for announcements, session reminders, shared resources, peer networking, and direct communication with instructors and the MedAssist team."
+                    a: "Yes. All registered and paid participants will be added to the official MedAssist Academy Cohort 1 WhatsApp group. This is where you will receive Zoom links, announcements, assignments, resources, and instructor support."
                   },
                   {
-                    q: "What if I have additional questions?",
-                    a: "You can reach our admissions team at any time via email at medassistacademy@gmail.com, by calling or WhatsApp messaging 0143869393, or through our LinkedIn page. We're happy to guide you through anything before or after enrollment."
+                    q: "Can I join classes on my phone?",
+                    a: "Yes. You can join via smartphone, tablet, laptop, or desktop as long as you have a stable internet connection and the Zoom app installed."
+                  },
+                  {
+                    q: "Does completing this course guarantee me a job?",
+                    a: "While we do not guarantee employment, our programme is specifically designed to make you job-ready. You will graduate with a certificate, a real portfolio, and the practical skills that clients on platforms like Upwork actively look for in a Medical VA."
+                  },
+                  {
+                    q: "I have more questions how do I reach you?",
+                    a: "You can reach us via WhatsApp or DM on our social media pages. We are happy to answer any questions before or after registration."
                   },
                 ] as { q: string; a: string }[]).map((item, idx) => (
                   <div key={idx} className="faq-item">

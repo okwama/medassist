@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
       status: record.status,
       name: record.name,
       email: record.email,
+      amount: record.amount,
       mpesa_receipt: record.mpesa_receipt,
     })
 

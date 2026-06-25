@@ -86,7 +86,7 @@ function SuccessContent() {
 
         {/* Welcome Header */}
         <div className="space-y-2">
-          <h1 className="text-xl font-bold text-white">Payment Confirmed!</h1>
+          <h1 className="text-xl font-bold text-black">Payment Confirmed!</h1>
           <div className="text-xs text-client-text space-y-1">
             <p>Welcome to MedAssist Academy, <strong className="text-client-accent">{studentName}</strong>!</p>
             <p>Your spot in Cohort 1 is secured.</p>
@@ -102,11 +102,11 @@ function SuccessContent() {
           </div>
           <div className="flex justify-between items-center border-t border-client-border pt-3">
             <span>Start Date</span>
-            <span className="font-semibold text-white">{COURSE_START_DATE}</span>
+            <span className="font-semibold text-client-accent">{COURSE_START_DATE}</span>
           </div>
           <div className="flex justify-between items-center border-t border-client-border pt-3">
             <span>Receipt sent to</span>
-            <span className="font-semibold text-white truncate max-w-[200px]">{receiptEmail}</span>
+            <span className="font-semibold text-client-accent truncate max-w-[200px]">{receiptEmail}</span>
           </div>
         </div>
 
@@ -131,7 +131,7 @@ function SuccessContent() {
 
 export default function SuccessPage() {
   return (
-    <div className="min-h-screen bg-client-bg flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-client-bg text-client-text flex flex-col items-center justify-center p-4">
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center space-y-4">
           <div className="size-10 border-4 border-client-accent border-t-transparent rounded-full animate-spin"></div>
