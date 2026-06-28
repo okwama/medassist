@@ -37,21 +37,9 @@ export default function CheckoutPage() {
   const [studyLevel, setStudyLevel] = useState('Working Professional')
   const [referral, setReferral] = useState('')
   
-  // Step 2 M-Pesa Number
-  const [mpesaPhone, setMpesaPhone] = useState('')
-
   // State Management
-  const [reference, setReference] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [pollingStatus, setPollingStatus] = useState<'pending' | 'success' | 'failed' | ''>('')
-  
-  // Pre-fill M-Pesa number when phone is entered in Step 1
-  useEffect(() => {
-    if (phone && !mpesaPhone) {
-      setMpesaPhone(phone)
-    }
-  }, [phone])
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -100,85 +88,13 @@ export default function CheckoutPage() {
   }
 
   // STK Push Trigger
-  const handlePay = async (e: React.FormEvent) => {
+  const handlePay = (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
-    const cleanMpesaPhone = mpesaPhone.trim().replace(/\s+/g, '')
-    const kenyanPhoneRegex = /^(?:254|\+254|0)?(7|1)\d{8}$/
-    if (!cleanMpesaPhone || !kenyanPhoneRegex.test(cleanMpesaPhone)) {
-      setError('Please enter a valid M-Pesa phone number')
-      return
-    }
-
-    // Jump to Step 3 immediately so the user sees feedback right away
     setIsSubmitting(true)
-    setStep(3)
 
-    try {
-      const res = await fetch('/api/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          phone: cleanMpesaPhone,
-          county,
-          studyLevel,
-          referral
-        })
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to trigger STK Push')
-      }
-
-      setReference(data.reference)
-      setPollingStatus('pending')
-      setIsSubmitting(false)
-      startPolling(data.reference)
-    } catch (err: any) {
-      setError(err.message)
-      setIsSubmitting(false)
-      setStep(2) // return to payment step on failure
-    }
-  }
-
-  const startPolling = (ref: string) => {
-    let attempts = 0
-    const maxAttempts = 36 // 36 × 5s = 3 minutes total
-    
-    const interval = setInterval(async () => {
-      attempts++
-      try {
-        const res = await fetch(`/api/status?ref=${ref}`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data.status === 'success') {
-            clearInterval(interval)
-            setPollingStatus('success')
-            router.push(`/success?ref=${ref}`)
-          } else if (data.status === 'failed') {
-            clearInterval(interval)
-            setPollingStatus('failed')
-            setIsSubmitting(false)
-            setStep(2)
-            setError('Payment was cancelled or failed. Please try again.')
-          }
-        }
-      } catch (err) {
-        console.error('Error polling status:', err)
-      }
-
-      if (attempts >= maxAttempts) {
-        clearInterval(interval)
-        setPollingStatus('failed')
-        setIsSubmitting(false)
-        setStep(2)
-        setError('Transaction timed out. If you already entered your PIN, please check your email for confirmation shortly or contact support.')
-      }
-    }, 5000) // poll every 5 seconds
+    const selarLink = 'https://selar.com/7447833287'
+    window.location.href = selarLink
   }
 
   return (
@@ -398,38 +314,25 @@ export default function CheckoutPage() {
               ) : null}
 
               <div className="bg-client-inner-bg rounded-xl p-4.5 flex items-center gap-3.5">
-                <img src="/mpesa.png" alt="M-Pesa" className="size-10 object-contain rounded-lg flex-shrink-0" />
-                <div>
-                  <h4 className="text-xs font-bold text-client-light">Pay via M-Pesa STK Push</h4>
-                  <p className="text-[10px] text-client-muted mt-0.5">An M-Pesa prompt will be sent to your phone</p>
+                <div className="size-10 rounded-lg bg-[#00A3A3]/10 text-[#00A3A3] flex items-center justify-center">
+                  <i className="fa-solid fa-link"></i>
                 </div>
-              </div>
-
-              {/* M-Pesa phone number input */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-client-accent tracking-wider block">M-PESA NUMBER</label>
-                <input
-                  type="tel"
-                  placeholder="07XXXXXXXX"
-                  value={mpesaPhone}
-                  onChange={(e) => setMpesaPhone(e.target.value)}
-                  className="w-full bg-client-input text-client-light placeholder-client-muted text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition"
-                  disabled={isSubmitting}
-                />
+                <div>
+                  <h4 className="text-xs font-bold text-client-light">Pay via Selar</h4>
+                  <p className="text-[10px] text-client-muted mt-0.5">You will be redirected to Selar to complete the checkout.</p>
+                </div>
               </div>
 
               <div className="space-y-2 pt-2">
                 <button
                   onClick={handlePay}
-                  disabled={isSubmitting}
-                  className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active disabled:opacity-50 transition flex items-center justify-center gap-1.5 text-sm"
+                  className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active transition flex items-center justify-center gap-1.5 text-sm"
                 >
-                  {isSubmitting ? 'Sending Request...' : `Pay KES ${coursePrice.toLocaleString()} via M-Pesa →`}
+                  Pay KES {coursePrice.toLocaleString()} via Selar →
                 </button>
 
                 <button
                   onClick={() => setStep(1)}
-                  disabled={isSubmitting}
                   className="w-full text-client-muted hover:text-client-accent text-xs font-bold py-2.5 transition"
                 >
                   ← Back
@@ -438,54 +341,6 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {step === 3 && (
-            <div className="space-y-6">
-              {isSubmitting ? (
-                /* ── Phase 1: Sending the STK push request ── */
-                <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                  <div className="size-12 border-4 border-client-accent border-t-transparent rounded-full animate-spin" />
-                  <div className="text-center space-y-1">
-                    <p className="text-sm font-bold text-client-light">Sending M-Pesa Request…</p>
-                    <p className="text-[11px] text-client-muted">Please wait, this only takes a moment</p>
-                  </div>
-                </div>
-              ) : (
-                /* ── Phase 2: Push sent — waiting for user to enter PIN ── */
-                <>
-                  <div>
-                    <h1 className="text-xl font-bold text-client-light">Check Your Phone 📱</h1>
-                    <p className="text-xs text-client-muted mt-1">Enter your M-Pesa PIN to complete payment</p>
-                  </div>
-
-                  {/* Status Message */}
-                  <div className="bg-client-inner-bg rounded-xl p-4.5 border-l-4 border-client-accent text-xs text-client-text leading-relaxed">
-                    An M-Pesa STK Push has been sent to <strong className="text-client-light">{mpesaPhone}</strong>. Enter your <strong className="text-client-light">M-Pesa PIN</strong> on your phone when prompted.
-                  </div>
-
-                  {/* Polling Spinner */}
-                  <div className="flex flex-col items-center justify-center py-6 space-y-3">
-                    <div className="size-10 border-4 border-client-accent border-t-transparent rounded-full animate-spin" />
-                    <div className="text-xs font-bold text-client-light">Waiting for payment…</div>
-                    <div className="text-[10px] text-client-muted">Take your time — this page will update automatically once payment is confirmed</div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        setStep(2)
-                        setIsSubmitting(false)
-                        setPollingStatus('')
-                      }}
-                      className="w-full text-client-muted hover:text-client-accent text-xs font-bold py-2.5 transition"
-                    >
-                      ← Resend prompt / Change number
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
           </div>
         </div>
       </div>

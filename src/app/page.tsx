@@ -325,14 +325,27 @@ export default function LandingPage() {
             >
               <div className="max-w-[800px] mx-auto space-y-6">
                 <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">
-                  Become a Certified Medical Virtual Assistant
+                  Launch a high-demand healthcare career from home
                 </h1>
                 <p className="text-lg md:text-xl font-light text-gray-200">
-                  Launch your global healthcare career from home. Master specialized admin workflows, client relations, and advanced telehealth infrastructure.
+                  Learn the practical skills clinics and remote teams need—medical documentation, scheduling, EHR workflows, and patient communication—in a focused 6-week live online programme.
                 </p>
-                <button onClick={handleEnrollClick} className="btn text-white mt-4">
-                  Enroll Now
-                </button>
+                <div className="flex flex-wrap justify-center gap-3 text-sm font-medium text-gray-100">
+                  <span className="rounded-full border border-white/30 bg-white/10 px-4 py-2">Live online sessions</span>
+                  <span className="rounded-full border border-white/30 bg-white/10 px-4 py-2">Practical assignments</span>
+                  <span className="rounded-full border border-white/30 bg-white/10 px-4 py-2">Certificate of completion</span>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+                  <button onClick={handleEnrollClick} className="btn text-white">
+                    Reserve Your Spot
+                  </button>
+                  <button
+                    onClick={(e) => navigateTo(e, "program")}
+                    className="btn btn-outline"
+                  >
+                    See What You’ll Learn
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -363,8 +376,8 @@ export default function LandingPage() {
 
             <section className="py-20 bg-gray-50 text-center px-6 mt-8">
               <div className="max-w-[800px] mx-auto">
-                <h2 className="text-3xl font-bold text-[#0A0A0A] mb-2">Cohort Enrolling Now</h2>
-                <p className="text-gray-500 mb-8">Secure your spot before registrations close.</p>
+                <h2 className="text-3xl font-bold text-[#0A0A0A] mb-2">Seats are filling fast</h2>
+                <p className="text-gray-500 mb-8">The next cohort begins on August 15, 2026. Early applicants get the strongest support and planning ahead.</p>
 
                 {countdownText ? (
                   <p className="text-lg font-semibold text-[#00A3A3]">{countdownText}</p>
@@ -391,9 +404,26 @@ export default function LandingPage() {
               </div>
             </section>
 
+            <section className="py-16 bg-white px-6">
+              <div className="max-w-[1100px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left">
+                  <h3 className="text-lg font-bold text-[#0A0A0A] mb-2">Built for beginners</h3>
+                  <p className="text-sm text-gray-600">No prior medical background is required. We guide you step by step from foundational concepts to practical workflows.</p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left">
+                  <h3 className="text-lg font-bold text-[#0A0A0A] mb-2">Real-world training</h3>
+                  <p className="text-sm text-gray-600">Work through assignments and simulations that prepare you for the kind of tasks healthcare teams actually handle.</p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left">
+                  <h3 className="text-lg font-bold text-[#0A0A0A] mb-2">Supportive cohort experience</h3>
+                  <p className="text-sm text-gray-600">Join a live learning environment with guidance, community support, and a clear roadmap toward completion.</p>
+                </div>
+              </div>
+            </section>
+
             <section className="bg-[#00A3A3] text-white py-16 px-6 text-center">
               <div className="max-w-[800px] mx-auto space-y-4">
-                <h2 className="text-3xl font-bold">Build Practical Medical VA Skills with Real Training</h2>
+                <h2 className="text-3xl font-bold">Ready to build a future in remote healthcare support?</h2>
                 <p className="text-gray-100 max-w-[680px] mx-auto">
                   This is a training-first programme designed to equip you with practical skills, hands-on practice, and a strong portfolio foundation. We do not offer agency placement or guaranteed job placement.
                 </p>
@@ -401,7 +431,7 @@ export default function LandingPage() {
                   onClick={(e) => navigateTo(e, "program")}
                   className="btn btn-outline mt-4"
                 >
-                  Explore Curriculum
+                  Explore the Curriculum
                 </button>
               </div>
             </section>
