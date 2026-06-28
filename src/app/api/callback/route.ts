@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
       if (record) {
         // Enforce updated values for the side-effect handlers
         record.status = 'success'
-        record.mpesa_receipt = mpesaReceipt
 
         // Run side-effects in parallel
         await Promise.allSettled([
