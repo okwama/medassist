@@ -24,7 +24,7 @@ export async function initDb() {
       amount              INT          NOT NULL DEFAULT 8000,
       status              VARCHAR(20)  NOT NULL DEFAULT 'pending'
                             CHECK (status IN ('pending','success','failed')),
-      mpesa_receipt       VARCHAR(50)  NULL,
+      receipt_number      VARCHAR(100) NULL,
       checkout_request_id VARCHAR(100) NULL,
       created_at          TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
       paid_at             TIMESTAMPTZ  NULL
@@ -36,6 +36,7 @@ export async function initDb() {
   await sql`CREATE INDEX IF NOT EXISTS idx_status    ON payments (status)`
   await sql`CREATE INDEX IF NOT EXISTS idx_email     ON payments (email)`
   await sql`CREATE INDEX IF NOT EXISTS idx_checkout  ON payments (checkout_request_id)`
+  await sql`ALTER TABLE payments ADD COLUMN IF NOT EXISTS receipt_number VARCHAR(100) NULL`
 
   await initSiteSettings()
 
@@ -95,12 +96,12 @@ export async function insertPayment(record: PaymentRecord) {
   await sql`
     INSERT INTO payments
       (reference, name, email, phone, county, study_level, referral,
-       course, amount, status, checkout_request_id)
+       course, amount, status, receipt_number, checkout_request_id)
     VALUES
       (${record.reference}, ${record.name}, ${record.email}, ${record.phone},
        ${record.county}, ${record.study_level}, ${record.referral},
        ${record.course}, ${record.amount}, 'pending',
-       ${record.checkout_request_id ?? null})
+       ${record.receipt_number ?? null}, ${record.checkout_request_id ?? null})
     ON CONFLICT (reference) DO NOTHING
   `
 }
@@ -110,33 +111,33 @@ export async function insertPayment(record: PaymentRecord) {
 // ---------------------------------------------------------------------------
 export async function updatePaymentStatus(
   reference: string,
-  status: 'success' | 'failed',
-  mpesaReceipt?: string
+  status: 'success' | 'failed' | 'pending',
+  receiptNumber?: string
 ) {
   await sql`
     UPDATE payments
     SET
-      status        = ${status},
-      mpesa_receipt = ${mpesaReceipt ?? null},
-      paid_at       = ${status === 'success' ? new Date().toISOString() : null}
+      status         = ${status},
+      receipt_number = ${receiptNumber ?? null},
+      paid_at        = ${status === 'success' ? new Date().toISOString() : null}
     WHERE reference = ${reference}
   `
 }
 
 // ---------------------------------------------------------------------------
-// Update payment status by Safaricom CheckoutRequestID (used in callback)
+// Update payment status by CheckoutRequestID
 // ---------------------------------------------------------------------------
 export async function updatePaymentStatusByCheckoutRequestId(
   checkoutRequestId: string,
   status: 'success' | 'failed',
-  mpesaReceipt?: string
+  receiptNumber?: string
 ) {
   await sql`
     UPDATE payments
     SET
-      status        = ${status},
-      mpesa_receipt = ${mpesaReceipt ?? null},
-      paid_at       = ${status === 'success' ? new Date().toISOString() : null}
+      status         = ${status},
+      receipt_number = ${receiptNumber ?? null},
+      paid_at        = ${status === 'success' ? new Date().toISOString() : null}
     WHERE checkout_request_id = ${checkoutRequestId}
   `
 }
@@ -146,7 +147,10 @@ export async function updatePaymentStatusByCheckoutRequestId(
 // ---------------------------------------------------------------------------
 export async function getPaymentByReference(reference: string): Promise<PaymentRecord | null> {
   const rows = await sql`
-    SELECT * FROM payments WHERE reference = ${reference} LIMIT 1
+    SELECT *, COALESCE(receipt_number, mpesa_receipt) AS receipt_number
+    FROM payments
+    WHERE reference = ${reference}
+    LIMIT 1
   `
   return (rows[0] as PaymentRecord) ?? null
 }
@@ -156,7 +160,10 @@ export async function getPaymentByReference(reference: string): Promise<PaymentR
 // ---------------------------------------------------------------------------
 export async function getPaymentByCheckoutRequestId(checkoutRequestId: string): Promise<PaymentRecord | null> {
   const rows = await sql`
-    SELECT * FROM payments WHERE checkout_request_id = ${checkoutRequestId} LIMIT 1
+    SELECT *, COALESCE(receipt_number, mpesa_receipt) AS receipt_number
+    FROM payments
+    WHERE checkout_request_id = ${checkoutRequestId}
+    LIMIT 1
   `
   return (rows[0] as PaymentRecord) ?? null
 }
@@ -166,7 +173,9 @@ export async function getPaymentByCheckoutRequestId(checkoutRequestId: string): 
 // ---------------------------------------------------------------------------
 export async function getAllPayments(): Promise<PaymentRecord[]> {
   const rows = await sql`
-    SELECT * FROM payments ORDER BY created_at DESC
+    SELECT *, COALESCE(receipt_number, mpesa_receipt) AS receipt_number
+    FROM payments
+    ORDER BY created_at DESC
   `
   return rows as PaymentRecord[]
 }

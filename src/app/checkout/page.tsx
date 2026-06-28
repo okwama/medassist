@@ -88,13 +88,43 @@ export default function CheckoutPage() {
   }
 
   // STK Push Trigger
-  const handlePay = (e: React.FormEvent) => {
+  const handlePay = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsSubmitting(true)
 
-    const selarLink = 'https://selar.com/7447833287'
-    window.location.href = selarLink
+    try {
+      const res = await fetch('/api/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          county,
+          studyLevel,
+          referral,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to create payment record')
+      }
+
+      const reference = data.reference
+      if (!reference) {
+        throw new Error('Missing payment reference from server')
+      }
+
+      const selarLink = 'https://selar.com/7447833287'
+      window.open(selarLink, '_blank')
+      router.push(`/success?ref=${encodeURIComponent(reference)}`)
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Unable to proceed to payment')
+      setIsSubmitting(false)
+    }
   }
 
   return (

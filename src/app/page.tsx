@@ -665,7 +665,7 @@ export default function LandingPage() {
                   },
                   {
                     q: "How do I register and pay?",
-                    a: "Registration is done online. You will fill in your details and pay via M-Pesa. Upon successful payment, you will receive access to our official Cohort 1 WhatsApp group where all communication, resources, and Zoom links will be shared."
+                    a: "Registration is done online. You will fill in your details and pay via Selar. Upon successful payment, you will receive access to our official Cohort 1 WhatsApp group where all communication, resources, and Zoom links will be shared."
                   },
                   {
                     q: "Are there assessments?",

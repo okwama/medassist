@@ -30,7 +30,7 @@ interface Payment {
   course: string
   amount: number
   status: 'pending' | 'success' | 'failed'
-  mpesa_receipt?: string
+  receipt_number?: string
   created_at: string
   paid_at?: string
 }
@@ -148,7 +148,7 @@ function printReceipt(p: Payment) {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Receipt — ${p.mpesa_receipt ?? p.reference}</title>
+  <title>Receipt — ${p.receipt_number ?? p.reference}</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -289,8 +289,8 @@ function printReceipt(p: Payment) {
         </div>
       </div>
       <div class="receipt-meta">
-        <div class="receipt-label">M-Pesa Receipt No.</div>
-        <div class="receipt-no">${p.mpesa_receipt ?? '—'}</div>
+        <div class="receipt-label">Receipt No.</div>
+        <div class="receipt-no">${p.receipt_number ?? '—'}</div>
       </div>
     </div>
 
@@ -344,6 +344,7 @@ export default function AdminTransactions() {
   const [isLoading, setIsLoading]           = useState(true)
   const [error, setError]                   = useState('')
   const [currentPage, setCurrentPage]       = useState(1)
+  const [actionLoading, setActionLoading]   = useState<string | null>(null)
   const itemsPerPage = 10
 
   const fetchPayments = useCallback(async () => {
@@ -365,6 +366,31 @@ export default function AdminTransactions() {
     }
   }, [router])
 
+  const handleUpdateStatus = async (reference: string, status: 'success' | 'failed') => {
+    setActionLoading(reference)
+    setError('')
+    try {
+      const body: Record<string, string> = { reference, status }
+      if (status === 'success') {
+        body.receiptNumber = reference
+      }
+      const res = await fetch('/api/admin/payments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data?.error || 'Failed to update payment status')
+      }
+      await fetchPayments()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   useEffect(() => { fetchPayments() }, [fetchPayments])
   useEffect(() => { setCurrentPage(1) }, [search, statusFilter])
 
@@ -385,7 +411,7 @@ export default function AdminTransactions() {
       p.email.toLowerCase().includes(q) ||
       p.phone.includes(q) ||
       p.reference.toLowerCase().includes(q) ||
-      (p.mpesa_receipt && p.mpesa_receipt.toLowerCase().includes(q))
+      (p.receipt_number && p.receipt_number.toLowerCase().includes(q))
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -584,7 +610,7 @@ export default function AdminTransactions() {
                           KES {p.amount.toLocaleString()}
                         </td>
                         <td className="px-5 py-3.5 font-mono text-[#00A3A3] text-xs">
-                          {p.mpesa_receipt || <span className="text-text-tertiary">—</span>}
+                          {p.receipt_number || <span className="text-text-tertiary">—</span>}
                         </td>
                         <td className="px-5 py-3.5">
                           <StatusBadge status={p.status} />
@@ -593,6 +619,15 @@ export default function AdminTransactions() {
                           {p.status === 'success' ? (
                             <Button size="xs" color="secondary" onClick={() => setSelectedReceipt(p)}>
                               View Receipt
+                            </Button>
+                          ) : p.status === 'pending' ? (
+                            <Button
+                              size="xs"
+                              color="primary"
+                              disabled={actionLoading === p.reference}
+                              onClick={() => handleUpdateStatus(p.reference, 'success')}
+                            >
+                              {actionLoading === p.reference ? 'Confirming…' : 'Confirm'}
                             </Button>
                           ) : (
                             <span className="text-text-tertiary">—</span>
@@ -655,7 +690,7 @@ export default function AdminTransactions() {
             <div className="bg-bg-secondary rounded-xl p-5 border border-border-secondary space-y-4 text-xs">
               <div className="flex justify-between items-center pb-3 border-b border-border-secondary">
                 <span className="text-text-tertiary font-medium">Receipt No:</span>
-                <span className="font-mono font-bold text-[#00A3A3] text-sm">{selectedReceipt.mpesa_receipt}</span>
+                <span className="font-mono font-bold text-[#00A3A3] text-sm">{selectedReceipt.receipt_number ?? selectedReceipt.reference}</span>
               </div>
               <div className="space-y-2.5">
                 {([

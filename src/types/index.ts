@@ -19,7 +19,7 @@ export interface PaymentRecord {
   course: string
   amount: number
   status: 'pending' | 'success' | 'failed'
-  mpesa_receipt?: string
+  receipt_number?: string
   checkout_request_id?: string
   created_at?: Date
   paid_at?: Date

@@ -37,7 +37,7 @@ export async function appendToSheet(record: PaymentRecord) {
           record.referral,
           record.course,
           record.amount,
-          record.mpesa_receipt || '',
+          record.receipt_number || '',
           record.reference,
           record.status
         ]]

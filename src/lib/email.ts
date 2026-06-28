@@ -32,8 +32,8 @@ export async function sendStudentEmail(record: PaymentRecord) {
           <tr style="border-top:1px solid #eee;border-bottom:1px solid #eee;">
               <td style="padding:8px 0;color:#666">Start Date</td>
               <td style="padding:8px 0;font-weight:600">${startDate}</td></tr>
-          <tr><td style="padding:8px 0;color:#666">M-Pesa Receipt</td>
-              <td style="padding:8px 0;font-weight:600;font-family:monospace;">${record.mpesa_receipt || 'N/A'}</td></tr>
+          <tr><td style="padding:8px 0;color:#666">Receipt Number</td>
+              <td style="padding:8px 0;font-weight:600;font-family:monospace;">${record.receipt_number || record.reference}</td></tr>
         </table>
         <div style="margin:32px 0;">
           <a href="${waLink}" 
@@ -77,8 +77,8 @@ export async function sendClientNotification(record: PaymentRecord) {
           <tr><td style="padding:8px;color:#666;border-bottom:1px solid #f0f0f0;">Amount</td>
               <td style="padding:8px;font-weight:600;color:#1D9E75;border-bottom:1px solid #f0f0f0;">
                 KES ${record.amount.toLocaleString()}</td></tr>
-          <tr><td style="padding:8px;color:#666;border-bottom:1px solid #f0f0f0;">M-Pesa Receipt</td>
-              <td style="padding:8px;font-weight:600;border-bottom:1px solid #f0f0f0;">${record.mpesa_receipt || 'N/A'}</td></tr>
+          <tr><td style="padding:8px;color:#666;border-bottom:1px solid #f0f0f0;">Receipt Number</td>
+              <td style="padding:8px;font-weight:600;border-bottom:1px solid #f0f0f0;">${record.receipt_number || record.reference}</td></tr>
           <tr><td style="padding:8px;color:#666;">Reference</td>
               <td style="padding:8px;font-family:monospace;">${record.reference}</td></tr>
         </table>

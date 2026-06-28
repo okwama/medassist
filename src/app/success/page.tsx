@@ -10,14 +10,18 @@ function SuccessContent() {
   const [record, setRecord] = useState<{
     name: string
     email: string
-    mpesa_receipt?: string
+    receipt_number?: string
     status: string
     amount?: number
+    reference?: string
   } | null>(null)
   
   const [isLoading, setIsLoading] = useState(true)
   const [courseStartDate, setCourseStartDate] = useState('15 August 2026')
   const [whatsappGroupLink, setWhatsappGroupLink] = useState('https://chat.whatsapp.com/mock')
+
+  const status = record?.status
+  const receiptNumber = record?.receipt_number || record?.reference || '—'
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -55,7 +59,7 @@ function SuccessContent() {
     return (
       <div className="flex flex-col items-center justify-center py-10 space-y-4">
         <div className="size-10 border-4 border-[#00bfb3] border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-sm text-[#5c8580]">Confirming transaction details...</p>
+        <p className="text-sm text-[#5c8580]">Fetching your payment status...</p>
       </div>
     )
   }
@@ -63,6 +67,22 @@ function SuccessContent() {
   const studentName = record?.name || 'Student'
   const displayAmount = record?.amount ? `KES ${Number(record.amount).toLocaleString()}` : '—'
   const receiptEmail = record?.email || 'your email'
+  const statusLabel =
+    status === 'success'
+      ? 'Payment Confirmed!'
+      : status === 'pending'
+      ? 'Payment pending confirmation'
+      : status === 'failed'
+      ? 'Payment not confirmed'
+      : 'Payment status'
+  const statusDescription =
+    status === 'success'
+      ? 'Your payment has been manually confirmed by the admin team. Welcome to the cohort!'
+      : status === 'pending'
+      ? 'Your payment is pending review. Keep this page open and check back later, or contact admin with your reference.'
+      : status === 'failed'
+      ? 'We could not confirm your payment. Please contact support and provide your reference.'
+      : 'We are checking your payment details.'
 
   return (
     <div className="w-full max-w-[440px] space-y-6">
@@ -101,11 +121,13 @@ function SuccessContent() {
 
         {/* Welcome Header */}
         <div className="space-y-2">
-          <h1 className="text-xl font-bold text-client-text">Payment Confirmed!</h1>
+          <h1 className="text-xl font-bold text-client-text">{statusLabel}</h1>
           <div className="text-xs text-client-text space-y-1">
-            <p>Welcome to MedAssist Academy, <strong className="text-client-accent">{studentName}</strong>!</p>
-            <p>Your spot in Cohort 1 is secured.</p>
-            <p>Join our WhatsApp group to get started.</p>
+            <p>Welcome to MedAssist Academy, <strong className="text-client-accent">{studentName}</strong>.</p>
+            <p>{statusDescription}</p>
+            {status === 'pending' && (
+              <p>Your payment reference is <strong className="text-client-accent">{receiptNumber}</strong>.</p>
+            )}
           </div>
         </div>
 
@@ -120,13 +142,20 @@ function SuccessContent() {
             <span className="font-semibold text-client-accent">{courseStartDate}</span>
           </div>
           <div className="flex justify-between items-center border-t border-client-border pt-3">
+            <span>Receipt Number</span>
+            <span className="font-semibold text-client-accent truncate max-w-[200px]">{receiptNumber}</span>
+          </div>
+          <div className="flex justify-between items-center border-t border-client-border pt-3">
             <span>Receipt sent to</span>
             <span className="font-semibold text-client-accent truncate max-w-[200px]">{receiptEmail}</span>
           </div>
         </div>
 
-        {/* WhatsApp Button */}
-        <div className="space-y-3 pt-2">
+
+          <div className="space-y-3 pt-2">
+        {/*
+         WhatsApp Button
+       
           <a
             href={whatsappGroupLink}
             target="_blank"
@@ -134,7 +163,7 @@ function SuccessContent() {
             className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active transition flex items-center justify-center gap-2 text-sm"
           >
             <span>💬</span> Join Our WhatsApp Group
-          </a>
+          </a> */}
           <p className="text-[10px] text-client-muted">
             A confirmation email has also been sent to you
           </p>
