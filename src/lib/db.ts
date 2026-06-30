@@ -31,6 +31,21 @@ export async function initDb() {
     )
   `
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS contact_outbox (
+      id            SERIAL PRIMARY KEY,
+      name          VARCHAR(150) NOT NULL,
+      email         VARCHAR(150) NOT NULL,
+      message       TEXT         NOT NULL,
+      status        VARCHAR(20)  NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending','sent','failed')),
+      attempts      INT          NOT NULL DEFAULT 0,
+      last_error    TEXT         NULL,
+      created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+      updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    )
+  `
+
   // Ensure indexes exist (idempotent)
   await sql`CREATE INDEX IF NOT EXISTS idx_reference ON payments (reference)`
   await sql`CREATE INDEX IF NOT EXISTS idx_status    ON payments (status)`
@@ -41,6 +56,73 @@ export async function initDb() {
   await initSiteSettings()
 
   console.log('Neon PostgreSQL database initialized successfully')
+}
+
+export async function enqueueContactInquiry(payload: { name: string; email: string; message: string }) {
+  const rows = await sql`
+    INSERT INTO contact_outbox (name, email, message, status, attempts, created_at, updated_at)
+    VALUES (${payload.name}, ${payload.email}, ${payload.message}, 'pending', 0, NOW(), NOW())
+    RETURNING id, name, email, message, status, attempts, last_error, created_at, updated_at
+  `
+
+  return rows[0]
+}
+
+export async function markContactInquirySent(id: number) {
+  await sql`
+    UPDATE contact_outbox
+    SET status = 'sent', attempts = attempts + 1, last_error = NULL, updated_at = NOW()
+    WHERE id = ${id}
+  `
+}
+
+export async function markContactInquiryFailed(id: number, error: string) {
+  await sql`
+    UPDATE contact_outbox
+    SET status = 'failed', attempts = attempts + 1, last_error = ${error.slice(0, 1000)}, updated_at = NOW()
+    WHERE id = ${id}
+  `
+}
+
+export async function getContactOutboxEntries() {
+  const rows = await sql`
+    SELECT id, name, email, message, status, attempts, last_error, created_at, updated_at
+    FROM contact_outbox
+    ORDER BY created_at DESC
+  `
+
+  return rows as Array<{
+    id: number
+    name: string
+    email: string
+    message: string
+    status: 'pending' | 'sent' | 'failed'
+    attempts: number
+    last_error?: string | null
+    created_at: string
+    updated_at: string
+  }>
+}
+
+export async function getContactOutboxEntry(id: number) {
+  const rows = await sql`
+    SELECT id, name, email, message, status, attempts, last_error, created_at, updated_at
+    FROM contact_outbox
+    WHERE id = ${id}
+    LIMIT 1
+  `
+
+  return rows[0] as {
+    id: number
+    name: string
+    email: string
+    message: string
+    status: 'pending' | 'sent' | 'failed'
+    attempts: number
+    last_error?: string | null
+    created_at: string
+    updated_at: string
+  } | undefined
 }
 
 export async function initSiteSettings() {
@@ -147,7 +229,7 @@ export async function updatePaymentStatusByCheckoutRequestId(
 // ---------------------------------------------------------------------------
 export async function getPaymentByReference(reference: string): Promise<PaymentRecord | null> {
   const rows = await sql`
-    SELECT *, COALESCE(receipt_number, mpesa_receipt) AS receipt_number
+    SELECT *
     FROM payments
     WHERE reference = ${reference}
     LIMIT 1
@@ -160,7 +242,7 @@ export async function getPaymentByReference(reference: string): Promise<PaymentR
 // ---------------------------------------------------------------------------
 export async function getPaymentByCheckoutRequestId(checkoutRequestId: string): Promise<PaymentRecord | null> {
   const rows = await sql`
-    SELECT *, COALESCE(receipt_number, mpesa_receipt) AS receipt_number
+    SELECT *
     FROM payments
     WHERE checkout_request_id = ${checkoutRequestId}
     LIMIT 1
@@ -173,7 +255,7 @@ export async function getPaymentByCheckoutRequestId(checkoutRequestId: string): 
 // ---------------------------------------------------------------------------
 export async function getAllPayments(): Promise<PaymentRecord[]> {
   const rows = await sql`
-    SELECT *, COALESCE(receipt_number, mpesa_receipt) AS receipt_number
+    SELECT *
     FROM payments
     ORDER BY created_at DESC
   `

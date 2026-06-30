@@ -31,7 +31,7 @@ interface Payment {
   course: string
   amount: number
   status: 'pending' | 'success' | 'failed'
-  mpesa_receipt?: string
+  receipt_number?: string
   created_at: string
   paid_at?: string
 }
@@ -165,7 +165,7 @@ export default function AdminDashboard() {
       p.email.toLowerCase().includes(q) ||
       p.phone.includes(q) ||
       p.reference.toLowerCase().includes(q) ||
-      (p.mpesa_receipt && p.mpesa_receipt.toLowerCase().includes(q))
+      (p.receipt_number && p.receipt_number.toLowerCase().includes(q))
     )
   })
 
@@ -300,7 +300,7 @@ export default function AdminDashboard() {
                     <th className="px-5 py-3">County / Level</th>
                     <th className="px-5 py-3">Date / Ref</th>
                     <th className="px-5 py-3">Amount</th>
-                    <th className="px-5 py-3">M-Pesa Receipt</th>
+                    <th className="px-5 py-3">Receipt</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3 text-right">Action</th>
                   </tr>
@@ -340,7 +340,7 @@ export default function AdminDashboard() {
                           KES {p.amount.toLocaleString()}
                         </td>
                         <td className="px-5 py-3.5 font-mono text-[#00A3A3] text-xs">
-                          {p.mpesa_receipt || <span className="text-text-tertiary">—</span>}
+                          {p.receipt_number || <span className="text-text-tertiary">—</span>}
                         </td>
                         <td className="px-5 py-3.5">
                           <StatusBadge status={p.status} />
@@ -411,7 +411,7 @@ export default function AdminDashboard() {
             <div className="bg-bg-secondary rounded-xl p-5 border border-border-secondary space-y-4 text-xs">
               <div className="flex justify-between items-center pb-3 border-b border-border-secondary">
                 <span className="text-text-tertiary font-medium">Receipt No:</span>
-                <span className="font-mono font-bold text-[#00A3A3] text-sm">{selectedReceipt.mpesa_receipt}</span>
+                <span className="font-mono font-bold text-[#00A3A3] text-sm">{selectedReceipt.receipt_number || selectedReceipt.reference}</span>
               </div>
               <div className="space-y-2.5">
                 {([

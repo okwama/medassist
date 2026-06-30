@@ -86,3 +86,25 @@ export async function sendClientNotification(record: PaymentRecord) {
     `
   })
 }
+
+export async function sendContactInquiryEmail(payload: { name: string; email: string; message: string }) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY is not configured')
+  }
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM || 'courses@yourclient.co.ke',
+    to: process.env.CONTACT_EMAIL || process.env.CLIENT_NOTIFY_EMAIL || 'medassistacademy@gmail.com',
+    replyTo: payload.email,
+    subject: `New inquiry from ${payload.name}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#333;">
+        <h2 style="color:#1D9E75">New Contact Inquiry</h2>
+        <p><strong>Name:</strong> ${payload.name}</p>
+        <p><strong>Email:</strong> ${payload.email}</p>
+        <p><strong>Message:</strong></p>
+        <div style="white-space:pre-wrap;background:#f7f7f7;padding:16px;border-radius:8px;">${payload.message}</div>
+      </div>
+    `,
+  })
+}

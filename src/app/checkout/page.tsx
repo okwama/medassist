@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/base/buttons/button'
+import { Input } from '@/components/base/input/input'
+import { NativeSelect } from '@/components/base/select/select-native'
 
 const studyLevels = [
   { id: 'Certificate', label: 'Certificate' },
@@ -214,94 +217,74 @@ export default function CheckoutPage() {
               </div>
 
               <div className="space-y-3.5">
-                {/* Full Name */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-client-accent tracking-wider block">FULL NAME</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Jane Wanjiku"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-client-input text-client-light placeholder-client-muted text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition"
-                  />
-                </div>
+                <Input
+                  label="FULL NAME"
+                  placeholder="e.g. Jane Wanjiku"
+                  value={name}
+                  onChange={(value) => setName(value)}
+                  size="md"
+                  className="w-full"
+                  isRequired
+                />
 
-                {/* Email Address */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-client-accent tracking-wider block">EMAIL ADDRESS</label>
-                  <input
-                    type="email"
-                    placeholder="jane@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-client-input text-client-light placeholder-client-muted text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition"
-                  />
-                </div>
+                <Input
+                  label="EMAIL ADDRESS"
+                  type="email"
+                  placeholder="jane@email.com"
+                  value={email}
+                  onChange={(value) => setEmail(value)}
+                  size="md"
+                  className="w-full"
+                  isRequired
+                />
 
-                {/* Phone Number */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-client-accent tracking-wider block">PHONE NUMBER</label>
-                  <input
-                    type="tel"
-                    placeholder="07XX XXX XXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-client-input text-client-light placeholder-client-muted text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition"
-                  />
-                </div>
+                <Input
+                  label="PHONE NUMBER"
+                  type="tel"
+                  placeholder="07XX XXX XXX"
+                  value={phone}
+                  onChange={(value) => setPhone(value)}
+                  size="md"
+                  className="w-full"
+                  isRequired
+                />
 
-                {/* County & Study Level Grid */}
                 <div className="grid grid-cols-2 gap-3.5">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-client-accent tracking-wider block">COUNTY</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Nairobi"
-                      value={county}
-                      onChange={(e) => setCounty(e.target.value)}
-                      className="w-full bg-client-input text-client-light placeholder-client-muted text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-client-accent tracking-wider block">STUDY LEVEL</label>
-                    <select
-                      value={studyLevel}
-                      onChange={(e) => setStudyLevel(e.target.value)}
-                      className="w-full bg-client-input text-client-light text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition appearance-none cursor-pointer"
-                    >
-                      {studyLevels.map((opt) => (
-                        <option key={opt.id} value={opt.id} className="bg-client-input text-client-light">
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <Input
+                    label="COUNTY"
+                    placeholder="e.g. Nairobi"
+                    value={county}
+                    onChange={(value) => setCounty(value)}
+                    size="md"
+                    className="w-full"
+                    isRequired
+                  />
+                  <NativeSelect
+                    label="STUDY LEVEL"
+                    size="md"
+                    value={studyLevel}
+                    onChange={(event) => setStudyLevel(event.target.value)}
+                    options={studyLevels.map((opt) => ({ label: opt.label, value: opt.id }))}
+                  />
                 </div>
 
-                {/* How did you hear about us */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-client-accent tracking-wider block">HOW DID YOU HEAR ABOUT US?</label>
-                  <select
-                    value={referral}
-                    onChange={(e) => setReferral(e.target.value)}
-                    className="w-full bg-client-input text-client-light text-sm px-4 py-3 rounded-lg border-none outline-none focus:ring-1 focus:ring-client-accent transition appearance-none cursor-pointer"
-                  >
-                    <option value="" disabled className="text-client-muted">Select</option>
-                    {referralOptions.map((opt) => (
-                      <option key={opt.id} value={opt.id} className="bg-client-input text-client-light">
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <NativeSelect
+                  label="HOW DID YOU HEAR ABOUT US?"
+                  size="md"
+                  value={referral}
+                  onChange={(event) => setReferral(event.target.value)}
+                  options={[{ label: 'Select', value: '', disabled: true }, ...referralOptions.map((opt) => ({ label: opt.label, value: opt.id }))]}
+                />
               </div>
 
-              <button
+              <Button
                 onClick={handleNext}
-                className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active transition flex items-center justify-center gap-1.5 mt-4 text-sm"
+                color="primary"
+                size="md"
+                className="mt-4 w-full justify-center"
               >
                 Continue to Payment →
-              </button>
+              </Button>
             </div>
           )}
 
@@ -354,19 +337,24 @@ export default function CheckoutPage() {
               </div>
 
               <div className="space-y-2 pt-2">
-                <button
+                <Button
                   onClick={handlePay}
-                  className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active transition flex items-center justify-center gap-1.5 text-sm"
+                  color="primary"
+                  size="md"
+                  className="w-full justify-center"
+                  isLoading={isSubmitting}
                 >
                   Pay KES {coursePrice.toLocaleString()} via Selar →
-                </button>
+                </Button>
 
-                <button
+                <Button
                   onClick={() => setStep(1)}
-                  className="w-full text-client-muted hover:text-client-accent text-xs font-bold py-2.5 transition"
+                  color="tertiary"
+                  size="sm"
+                  className="w-full justify-center"
                 >
                   ← Back
-                </button>
+                </Button>
               </div>
             </div>
           )}

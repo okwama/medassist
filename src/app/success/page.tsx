@@ -2,6 +2,8 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Badge } from '@/components/base/badges/badges'
+import { Button } from '@/components/base/buttons/button'
 
 function SuccessContent() {
   const searchParams = useSearchParams()
@@ -153,17 +155,12 @@ function SuccessContent() {
 
 
           <div className="space-y-3 pt-2">
-        {/*
-         WhatsApp Button
-       
-          <a
-            href={whatsappGroupLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full bg-client-accent text-client-dark font-bold py-3.5 px-4 rounded-lg hover:bg-client-accent-hover active:bg-client-accent-active transition flex items-center justify-center gap-2 text-sm"
-          >
-            <span>💬</span> Join Our WhatsApp Group
-          </a> */}
+          <div className="flex justify-center">
+            <Badge color="success" type="pill-color" size="md">✓ Payment Confirmed</Badge>
+          </div>
+          <Button color="secondary" size="md" className="w-full justify-center" onClick={() => window.location.assign('/')}>
+            Back to home
+          </Button>
           <p className="text-[10px] text-client-muted">
             A confirmation email has also been sent to you
           </p>

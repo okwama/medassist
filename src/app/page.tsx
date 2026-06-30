@@ -13,6 +13,8 @@ export default function LandingPage() {
   const [hours, setHours] = useState("00")
   const [minutes, setMinutes] = useState("00")
   const [seconds, setSeconds] = useState("00")
+  const [contactStatus, setContactStatus] = useState<"idle" | "submitting" | "success" | "error">("idle")
+  const [contactMessage, setContactMessage] = useState("")
 
   // Enroll Redirect Handler
   const handleEnrollClick = (e: React.MouseEvent) => {
@@ -63,14 +65,40 @@ export default function LandingPage() {
   }
 
   // Handle inquiry form submit
-  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const target = e.currentTarget
     const nameInput = target.querySelector("#name") as HTMLInputElement
     const emailInput = target.querySelector("#email") as HTMLInputElement
-    
-    alert(`Thank you for reaching out, ${nameInput.value}! Your inquiry has been logged successfully. A MedAssist enrollment counselor will contact you at ${emailInput.value} shortly.`)
-    target.reset()
+    const messageInput = target.querySelector("#message") as HTMLTextAreaElement
+
+    setContactStatus("submitting")
+    setContactMessage("")
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: nameInput.value,
+          email: emailInput.value,
+          message: messageInput.value,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Unable to submit your inquiry')
+      }
+
+      target.reset()
+      setContactStatus("success")
+      setContactMessage("Thanks for reaching out. Your inquiry has been saved and will be reviewed shortly.")
+    } catch (error: any) {
+      setContactStatus("error")
+      setContactMessage(error.message || 'Unable to submit your inquiry right now.')
+    }
   }
 
   return (
@@ -565,25 +593,24 @@ export default function LandingPage() {
                   <h2 className="text-3xl font-bold text-center relative pb-3 after:content-[''] after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:w-16 after:h-1 after:bg-[#00A3A3] after:rounded mb-12">
                     Meet Your Instructors
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[800px] mx-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[900px] mx-auto">
                     <div className="bg-white shadow-md rounded-xl overflow-hidden hover:-translate-y-1 transition text-center">
                       <div className="h-[250px] bg-gray-200 overflow-hidden relative">
-                        <Image
-                          src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=400&h=300&q=80"
-                          alt="Dr. Catherine Mwangi"
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 100vw, 400px"
-                          loading="lazy"
-                        />
+                       <Image
+  src="/purity.jpeg"
+  alt="Purity Nywamweya"
+  fill
+  className="object-cover"
+  style={{ objectPosition: "center 7%" }}
+/>
                       </div>
                       <div className="p-6">
-                        <h3 className="font-bold text-lg">Dr. Catherine Mwangi</h3>
+                        <h3 className="font-bold text-lg">Purity Nywamweya</h3>
                         <div className="text-xs font-bold text-[#00A3A3] uppercase tracking-wider my-1">
-                          Lead Clinical Operations
+                          Founder & Lead Trainer
                         </div>
                         <p className="text-gray-500 text-sm mt-3">
-                          Bringing over 12 years of clinical administrative workflow setup expertise across diverse tracking networks globally.
+                          The founder of the programme, Purity brings a wealth of experience in healthcare administration and remote support operations. Her journey has shaped a practical, career-focused training experience designed to help students thrive in the global medical VA space.
                         </p>
                       </div>
                     </div>
@@ -591,8 +618,8 @@ export default function LandingPage() {
                     <div className="bg-white shadow-md rounded-xl overflow-hidden hover:-translate-y-1 transition text-center">
                       <div className="h-[250px] bg-gray-200 overflow-hidden relative">
                         <Image
-                          src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&h=300&q=80"
-                          alt="Michael Chen"
+                          src="https://placehold.net/avatar.png"
+                          alt="Nicole Wafula"
                           fill
                           className="object-cover"
                           sizes="(max-width: 768px) 100vw, 400px"
@@ -600,12 +627,12 @@ export default function LandingPage() {
                         />
                       </div>
                       <div className="p-6">
-                        <h3 className="font-bold text-lg">Michael Chen, CMS</h3>
+                        <h3 className="font-bold text-lg">Nicole Wafula</h3>
                         <div className="text-xs font-bold text-[#00A3A3] uppercase tracking-wider my-1">
-                          Scribing Specialist
+                          MedVaAssist Graduate & Medical VA Professional
                         </div>
                         <p className="text-gray-500 text-sm mt-3">
-                          A pioneer in remote health scribing deployments with vast expertise across EMR platform logic architectures.
+                          Nicole is a graduate of MedVaAssist and currently works as a MedVA professional. Her journey offers a powerful testimonial of what is possible when students apply the skills they learn and stay committed to growth.
                         </p>
                       </div>
                     </div>
@@ -765,6 +792,11 @@ export default function LandingPage() {
 
                 <div className="bg-gray-50 p-8 rounded-xl shadow-sm">
                   <form onSubmit={handleFormSubmit} className="space-y-6">
+                    {contactStatus !== 'idle' && (
+                      <div className={`rounded-lg border px-4 py-3 text-sm ${contactStatus === 'success' ? 'border-[#00A3A3]/20 bg-[#e6f6f6] text-[#0A0A0A]' : 'border-red-200 bg-red-50 text-red-700'}`}>
+                        {contactMessage}
+                      </div>
+                    )}
                     <div>
                       <label htmlFor="name" className="block text-sm font-semibold mb-2">
                         Full Name
